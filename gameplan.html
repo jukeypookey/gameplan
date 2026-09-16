@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Game Plan">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16241c">
+<title>Game Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --board: #16241c;
+    --board-light: #1e3327;
+    --card: #203827;
+    --line: #33503d;
+    --chalk: #eeeee2;
+    --chalk-dim: #a9bcae;
+    --gold: #e8b93f;
+    --gold-dim: #8a7333;
+    --red: #e2604f;
+    --teal: #5aa88f;
+    --sleep: #6a7fb0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--board);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,0.03), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(255,255,255,0.02), transparent 40%);
+    color: var(--chalk);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .wrap {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 22px 18px 10px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 14px;
+  }
+
+  header .brand {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  header .brand span { color: var(--gold); }
+
+  header .date {
+    font-size: 12px;
+    color: var(--chalk-dim);
+    text-align: right;
+    line-height: 1.4;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    line-height: 1;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .menu-btn .menu-icon { font-size: 16px; }
+  .menu-btn .menu-label {
+    font-size: 8.5px;
+    letter-spacing: 0.4px;
+    color: var(--chalk-dim);
+    text-transform: uppercase;
+  }
+  .menu-btn:active { transform: scale(0.96); }
+
+  .sleep-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--sleep);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .sleep-row { display: flex; align-items: center; gap: 8px; }
+  .sleep-row .label { flex: 0 0 36px; color: var(--chalk-dim); font-size: 12px; }
+  .sleep-row .timepick { flex: 1; min-width: 0; }
+  .sleep-bar input {
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 6px 7px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .sleep-note { font-size: 11px; color: var(--chalk-dim); margin: -10px 0 16px 2px; }
+  .sleep-note.warn { color: var(--red); }
+
+  /* Sleep times are glanced at constantly, so they get the most readable
+     treatment of any control in the app: bigger, bolder, higher contrast. */
+  .sleep-bar .timepick { gap: 6px; }
+  .sleep-bar .timepick select {
+    padding: 11px 4px;
+    font-size: 17px;
+    font-weight: 700;
+    background: var(--card);
+    border: 1.5px solid var(--gold-dim);
+    color: var(--chalk);
+    border-radius: 7px;
+  }
+  .sleep-bar .timepick select.tp-ampm { flex: 0 0 54px; font-size: 13px; font-weight: 600; }
+
+  @media (max-width: 360px) {
+    .sleep-row .label { flex-basis: 30px; font-size: 11px; }
+    .sleep-bar .timepick select { font-size: 15px; padding: 10px 3px; }
+    .sleep-bar .timepick select.tp-ampm { flex-basis: 46px; font-size: 11px; }
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--chalk-dim);
+    cursor: pointer;
+    background: transparent;
+    transition: all .15s ease;
+  }
+  .tab.active {
+    background: var(--card);
+    color: var(--chalk);
+    border-color: var(--gold-dim);
+  }
+  .tab.active.task { border-color: var(--teal); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--chalk-dim);
+    margin-bottom: 5px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 10px 11px;
+    border-radius: 7px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+  }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+
+  .checkline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--chalk-dim);
+    margin-bottom: 12px;
+  }
+  .checkline input { width: auto; }
+
+  .add-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 11px 0;
+    border-radius: 7px;
+    border: none;
+    background: var(--gold);
+    color: #1a1508;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+  }
+  .add-btn.task { background: var(--teal); color: #0b1c15; }
+  .add-btn:active { transform: scale(0.98); }
+
+  .list-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--chalk-dim);
+    margin: 22px 0 10px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--gold);
+    border-radius: 8px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .item.task { border-left-color: var(--teal); }
+  .item .info .t { font-weight: 600; }
+  .item .info .d { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
+  .item .remove {
+    background: none;
+    border: none;
+    color: var(--chalk-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .item .info { flex: 1; min-width: 0; }
+  .item.done .info .t { text-decoration: line-through; opacity: 0.6; }
+  .item .check-circle.small { flex-shrink: 0; width: 20px; height: 20px; margin-top: 2px; margin-right: 10px; }
+  .item .check-circle.small.checked::after { font-size: 11px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .chip {
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--board-light);
+    color: var(--chalk-dim);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .chip.active { background: var(--teal); border-color: var(--teal); color: #0b1c15; font-weight: 600; }
+  .chip.active.gold { background: var(--gold); border-color: var(--gold); }
+
+  .edit-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(232,185,63,0.12);
+    border: 1px solid var(--gold-dim);
+    border-radius: 7px;
+    padding: 8px 11px;
+    font-size: 12.5px;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .edit-banner a { color: var(--chalk); text-decoration: underline; cursor: pointer; }
+
+  .empty {
+    font-size: 13px;
+    color: var(--chalk-dim);
+    padding: 8px 2px 4px;
+  }
+
+  .build-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px 0;
+    border-radius: 10px;
+    border: 2px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .build-btn:active { transform: scale(0.98); }
+
+  .day-section { margin-top: 26px; }
+  .day-heading {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .day-heading .sub { font-size: 11px; color: var(--chalk-dim); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  .tl-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 2px;
+  }
+  .tl-time {
+    width: 60px;
+    flex-shrink: 0;
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    color: var(--chalk-dim);
+    padding-top: 12px;
+    text-align: right;
+  }
+  .tl-line {
+    width: 2px;
+    background: var(--line);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .tl-dot {
+    position: absolute;
+    left: -3px;
+    top: 14px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .tl-dot.task { background: var(--teal); }
+  .tl-dot.sleep { background: var(--sleep); }
+  .tl-block {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .tl-block.fixed { border-left: 3px solid var(--gold); }
+  .tl-block.task-block { border-left: 3px solid var(--teal); }
+  .tl-block.sleep-block { border-left: 3px solid var(--sleep); opacity: 0.85; }
+  .tl-block .name { font-weight: 600; font-size: 14px; }
+  .tl-block .meta { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
+
+  .leftover {
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(226,96,79,0.12);
+    border: 1px solid rgba(226,96,79,0.4);
+    font-size: 13px;
+    color: #f0b7ae;
+  }
+
+  .day-warn {
+    margin-bottom: 10px;
+    padding: 9px 11px;
+    border-radius: 7px;
+    background: rgba(226,96,79,0.12);
+    border: 1px solid rgba(226,96,79,0.4);
+    font-size: 12.5px;
+    color: #f0b7ae;
+  }
+
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--gold-dim);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }
+  .s-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .summary-card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .summary-card li.warn { color: #f0b7ae; }
+
+  .hidden { display: none; }
+
+  #settingsPanel {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  #settingsPanel.open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .timepick { display: flex; gap: 6px; }
+  .timepick select {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    padding: 6px 4px;
+    text-align: center;
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .timepick select.tp-ampm { flex: 0 0 52px; }
+  .field .timepick select { padding: 10px 4px; font-size: 15px; }
+
+  .main-nav { margin-bottom: 18px; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .dash-greeting { margin-bottom: 14px; }
+  .dash-greeting .h1 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .dash-greeting .sub { font-size: 12.5px; color: var(--chalk-dim); margin-top: 2px; }
+
+  .progress-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    animation: cardIn 300ms ease both;
+  }
+  .progress-card .progress-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--chalk-dim);
+  }
+  .progress-card .progress-frac {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    color: var(--chalk);
+    font-weight: 600;
+  }
+  .progress-track {
+    height: 8px;
+    background: var(--board-light);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 5px;
+    transition: width 450ms ease;
+  }
+
+  .next-up-card {
+    background: var(--card);
+    border: 1px solid var(--gold-dim);
+    border-left: 4px solid var(--gold);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+    animation: cardIn 300ms ease both;
+    animation-delay: 40ms;
+  }
+  .next-up-card.now { border-color: var(--teal); border-left-color: var(--teal); }
+  .next-up-card .nu-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .next-up-card.now .nu-label { color: var(--teal); }
+  .next-up-card .nu-name { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+  .next-up-card .nu-meta { font-size: 12.5px; color: var(--chalk-dim); margin-bottom: 12px; }
+  .next-up-card .empty-msg { font-size: 14px; color: var(--chalk-dim); }
+
+  .start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--teal);
+    color: #0b1c15;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .start-btn:active { transform: scale(0.97); }
+  .start-btn.small { padding: 7px 13px; font-size: 12.5px; }
+
+  .minutes-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    animation: cardIn 300ms ease both;
+    animation-delay: 70ms;
+  }
+  .minutes-card .mc-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    margin-bottom: 10px;
+  }
+  .minutes-results { margin-top: 10px; }
+  .minutes-results .empty { padding: 4px 2px; }
+
+  .suggestion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .suggestion-row .sg-info .t { font-weight: 600; font-size: 13.5px; }
+  .suggestion-row .sg-info .d { font-size: 11.5px; color: var(--chalk-dim); margin-top: 1px; }
+
+  .day-plan-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--chalk-dim);
+    margin: 20px 0 10px;
+  }
+
+  .task-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--teal);
+    border-radius: 9px;
+    padding: 12px;
+    margin-bottom: 8px;
+    animation: cardIn 250ms ease both;
+  }
+  .task-card.fixed { border-left-color: var(--gold); }
+  .task-card.done { opacity: 0.55; }
+  .task-card.priority-high:not(.fixed) { border-left-color: var(--red); }
+
+  .check-circle {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--chalk-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-top: 1px;
+    transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+  }
+  .check-circle.checked {
+    background: var(--teal);
+    border-color: var(--teal);
+    transform: scale(1.05);
+  }
+  .check-circle.checked::after {
+    content: '\2713';
+    color: #0b1c15;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .check-circle.static { cursor: default; opacity: 0.4; border-style: dashed; }
+
+  .task-card .tc-body { flex: 1; min-width: 0; }
+  .task-card .tc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .task-card .tc-name { font-weight: 600; font-size: 14.5px; }
+  .task-card.done .tc-name { text-decoration: line-through; color: var(--chalk-dim); }
+  .task-card .tc-meta { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
+  .task-card .tc-actions { margin-top: 8px; }
+
+  .priority-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .priority-tag.high { background: rgba(226,96,79,0.18); color: var(--red); }
+  .priority-tag.low { background: rgba(169,188,174,0.15); color: var(--chalk-dim); }
+
+  .chip.priority-high.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .disclosure {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--chalk-dim);
+    padding: 8px 2px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .disclosure .chevron { transition: transform 200ms ease; display: inline-block; }
+  .disclosure.open .chevron { transform: rotate(180deg); }
+
+  #moreOptionsFields {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 220ms ease, opacity 200ms ease;
+  }
+  #moreOptionsFields.open {
+    max-height: 600px;
+    opacity: 1;
+  }
+
+  .dash-empty {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--chalk-dim);
+    font-size: 14px;
+    animation: cardIn 300ms ease both;
+  }
+  .dash-empty .big { font-size: 28px; margin-bottom: 8px; }
+  .dash-empty .add-cta {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: var(--gold);
+    color: #1a1508;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+  }
+
+  .focus-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .focus-overlay.open { opacity: 1; }
+  .focus-overlay.hidden { display: none; }
+  .focus-card {
+    background: var(--card);
+    border: 1px solid var(--gold-dim);
+    border-radius: 16px;
+    padding: 32px 28px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    transform: scale(0.94);
+    transition: transform 200ms ease;
+  }
+  .focus-overlay.open .focus-card { transform: scale(1); }
+  .focus-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .focus-name { font-size: 19px; font-weight: 700; margin-bottom: 18px; }
+  .focus-time {
+    font-family: 'Oswald', sans-serif;
+    font-size: 52px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+  .focus-time.done-flash { color: var(--teal); animation: pulse 900ms ease infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .focus-actions { display: flex; gap: 10px; justify-content: center; }
+  .focus-btn {
+    padding: 12px 20px;
+    border-radius: 9px;
+    border: none;
+    background: var(--teal);
+    color: #0b1c15;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .focus-btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--chalk); }
+  .focus-cancel {
+    display: block;
+    margin: 16px auto 0;
+    background: none;
+    border: none;
+    color: var(--chalk-dim);
+    font-size: 12.5px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  :root[data-theme="light"] {
+    --board: #f4f1e6;
+    --board-light: #ffffff;
+    --card: #ffffff;
+    --line: #d9d3bf;
+    --chalk: #1c2620;
+    --chalk-dim: #5c6b60;
+    --gold: #a8790f;
+    --gold-dim: #8a6d1f;
+    --red: #c0392b;
+    --teal: #2f7d64;
+    --sleep: #3d5a99;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Game<span>Plan</span></div>
+    <div class="header-right">
+      <div class="date" id="todayLabel"></div>
+      <button class="menu-btn" id="menuBtn" onclick="toggleSettingsMenu()" aria-label="Settings menu">
+        <span class="menu-icon">&#9776;</span>
+        <span class="menu-label">Settings</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="card hidden" id="settingsPanel">
+    <div class="s-title">Settings</div>
+    <div class="field">
+      <label>Time steps</label>
+      <select id="minuteStepSetting">
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+        <option value="15" selected>15 min</option>
+        <option value="30">30 min</option>
+        <option value="60">60 min</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Theme</label>
+      <select id="themeSetting">
+        <option value="dark" selected>Dark</option>
+        <option value="light">Light</option>
+        <option value="auto">Auto (matches your wake/sleep hours)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tabs main-nav">
+    <div class="tab active" id="navToday" onclick="switchMainView('today')">Today</div>
+    <div class="tab task" id="navPlan" onclick="switchMainView('plan')">Plan</div>
+  </div>
+
+  <!-- Today dashboard: the daily driver. Always computed fresh, no "build" step needed. -->
+  <div id="todayView"></div>
+
+  <div class="hidden" id="planView">
+
+  <div class="sleep-bar">
+    <div class="sleep-row">
+      <div class="label">Wake</div>
+      <div class="timepick" data-target="wakeTime">
+        <select class="tp-hour"></select>
+        <select class="tp-min"></select>
+        <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+      </div>
+    </div>
+    <div class="sleep-row">
+      <div class="label">Bed</div>
+      <div class="timepick" data-target="bedTime">
+        <select class="tp-hour"></select>
+        <select class="tp-min"></select>
+        <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+      </div>
+    </div>
+    <input type="time" id="wakeTime" value="06:30" class="hidden">
+    <input type="time" id="bedTime" value="22:30" class="hidden">
+  </div>
+  <div class="sleep-note" id="sleepNote"></div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabEvent" onclick="switchTab('event')">Class / event</div>
+    <div class="tab task" id="tabTask" onclick="switchTab('task')">Task</div>
+  </div>
+
+  <!-- Fixed event form -->
+  <div class="card" id="eventForm">
+    <div class="edit-banner hidden" id="evEditBanner">Editing event <a onclick="cancelEdit()">Cancel</a></div>
+    <div class="field">
+      <label>What is it</label>
+      <input type="text" id="evName" placeholder="Practice, game, class period...">
+    </div>
+    <div class="field" id="evDayField">
+      <label>Day</label>
+      <select id="evDay"></select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Starts</label>
+        <div class="timepick" data-target="evStart">
+          <select class="tp-hour"></select>
+          <select class="tp-min"></select>
+          <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+        </div>
+        <input type="time" id="evStart" value="16:00" class="hidden">
+      </div>
+      <div class="field">
+        <label>Ends</label>
+        <div class="timepick" data-target="evEnd">
+          <select class="tp-hour"></select>
+          <select class="tp-min"></select>
+          <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+        </div>
+        <input type="time" id="evEnd" value="18:00" class="hidden">
+      </div>
+    </div>
+    <div id="evRepeatSection">
+      <div class="checkline">
+        <input type="checkbox" id="evRepeatToggle" onchange="toggleEventRepeatUI(this.checked)">
+        <label for="evRepeatToggle">Repeats on specific days this week</label>
+      </div>
+      <div class="field hidden" id="evRepeatDaysField">
+        <label>Repeats on</label>
+        <div class="chip-row" id="evRepeatDayChips">
+          <button type="button" class="chip" data-dow="1">Mon</button>
+          <button type="button" class="chip" data-dow="2">Tue</button>
+          <button type="button" class="chip" data-dow="3">Wed</button>
+          <button type="button" class="chip" data-dow="4">Thu</button>
+          <button type="button" class="chip" data-dow="5">Fri</button>
+          <button type="button" class="chip" data-dow="6">Sat</button>
+          <button type="button" class="chip" data-dow="0">Sun</button>
+        </div>
+      </div>
+    </div>
+    <button class="add-btn" id="evAddBtn" onclick="addEvent()">Add to schedule</button>
+  </div>
+
+  <!-- Task form -->
+  <div class="card hidden" id="taskForm">
+    <div class="edit-banner hidden" id="tkEditBanner">Editing task <a onclick="cancelEdit()">Cancel</a></div>
+    <div class="field">
+      <label>What needs doing</label>
+      <input type="text" id="tkName" placeholder="Study for chem test, math homework...">
+    </div>
+    <div class="field">
+      <label>Time needed</label>
+      <div class="chip-row" id="durationChips">
+        <button type="button" class="chip" data-val="15">15m</button>
+        <button type="button" class="chip" data-val="20">20m</button>
+        <button type="button" class="chip active" data-val="30">30m</button>
+        <button type="button" class="chip" data-val="45">45m</button>
+        <button type="button" class="chip" data-val="60">1h</button>
+        <button type="button" class="chip" data-val="90">1.5h</button>
+        <button type="button" class="chip" data-val="120">2h</button>
+      </div>
+      <select id="tkDuration" class="hidden">
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">1 hour</option>
+        <option value="90">1.5 hours</option>
+        <option value="120">2 hours</option>
+      </select>
+    </div>
+    <div class="field" id="dueField">
+      <label>Due</label>
+      <select id="tkDue"></select>
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <div class="chip-row" id="priorityChips">
+        <button type="button" class="chip" data-priority="low">Low</button>
+        <button type="button" class="chip active" data-priority="normal">Normal</button>
+        <button type="button" class="chip priority-high" data-priority="high">High</button>
+      </div>
+    </div>
+    <div class="disclosure" id="moreOptionsToggle" onclick="toggleMoreOptions()">
+      <span>More options</span>
+      <span class="chevron" id="moreOptionsChevron">&#9662;</span>
+    </div>
+    <div id="moreOptionsFields">
+      <div class="field">
+        <label>Preferred time</label>
+        <select id="tkPref">
+          <option value="any">No preference</option>
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening</option>
+        </select>
+      </div>
+      <div class="checkline" id="splitLine">
+        <input type="checkbox" id="tkSplit" onchange="document.getElementById('sessionLenField').classList.toggle('hidden', !this.checked)">
+        <label for="tkSplit">Split into shorter study sessions leading up to the due day</label>
+      </div>
+      <div class="field hidden" id="sessionLenField">
+        <label>Session length</label>
+        <select id="tkSessionLen">
+          <option value="15">15 min</option>
+          <option value="20">20 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+        </select>
+      </div>
+      <div class="checkline">
+        <input type="checkbox" id="tkRecurring" onchange="toggleRecurringUI(this.checked)">
+        <label for="tkRecurring">Repeats weekly on specific days (e.g. study Spanish every Mon/Wed)</label>
+      </div>
+      <div class="field hidden" id="recurDaysField">
+        <label>Repeats on</label>
+        <div class="chip-row" id="recurDayChips">
+          <button type="button" class="chip" data-dow="0">Sun</button>
+          <button type="button" class="chip" data-dow="1">Mon</button>
+          <button type="button" class="chip" data-dow="2">Tue</button>
+          <button type="button" class="chip" data-dow="3">Wed</button>
+          <button type="button" class="chip" data-dow="4">Thu</button>
+          <button type="button" class="chip" data-dow="5">Fri</button>
+          <button type="button" class="chip" data-dow="6">Sat</button>
+        </div>
+      </div>
+    </div>
+    <button class="add-btn task" id="tkAddBtn" onclick="addTask()">Add to list</button>
+  </div>
+
+  <div class="list-title">On the board</div>
+  <div id="itemList">
+    <div class="empty">Nothing added yet — start with classes and practices, then add tasks with a due day.</div>
+  </div>
+
+  <button class="build-btn" onclick="buildWeek()">Build my week</button>
+
+  <div id="timelineWrap"></div>
+
+  </div><!-- /#planView -->
+
+  <div class="focus-overlay hidden" id="focusOverlay">
+    <div class="focus-card">
+      <div class="focus-label" id="focusLabel">FOCUS</div>
+      <div class="focus-name" id="focusName"></div>
+      <div class="focus-time" id="focusTime">00:00</div>
+      <div class="focus-actions">
+        <button class="focus-btn ghost" id="focusPauseBtn" onclick="toggleFocusPause()">Pause</button>
+        <button class="focus-btn" id="focusDoneBtn" onclick="finishFocus(true)">Mark done</button>
+      </div>
+      <button class="focus-cancel" onclick="finishFocus(false)">Cancel</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let events = [];   // {id, name, offset, start, end}
+  let tasks = [];    // {id, name, duration, dueOffset, recurring, recurDays, priority, completed, completedSessions}
+  let completions = {}; // per-day check-offs for recurring tasks, keyed "taskId:dateKey"
+  let idCounter = 1;
+  let editingEventId = null;
+  let editingTaskId = null;
+  let tkRecurDays = new Set();
+  let evRepeatDays = new Set();
+  let tkPriority = 'normal';
+  let lastScheduleData = null;
+  let theme = 'dark';
+  let mainView = 'today';
+
+  const PRIORITY_RANK = { high: 2, normal: 1, low: 0 };
+  const PRIORITY_LABEL = { high: 'High', normal: 'Normal', low: 'Low' };
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  const WEEKDAY_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  function getWeekDays() {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push({
+        offset: i,
+        dow: d.getDay(),
+        // Calendar date, not the rolling offset — completion keys use this so a task
+        // checked off today doesn't collide with the same weekday next week.
+        dateKey: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+        label: i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : WEEKDAY_LONG[d.getDay()]),
+        dateStr: `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+      });
+    }
+    return days;
+  }
+
+  const WEEK_DAYS = getWeekDays();
+
+  function populateDaySelects() {
+    const evSel = document.getElementById('evDay');
+    const tkSel = document.getElementById('tkDue');
+    WEEK_DAYS.forEach(d => {
+      const opt1 = document.createElement('option');
+      opt1.value = d.offset;
+      opt1.textContent = `${d.label} (${d.dateStr})`;
+      evSel.appendChild(opt1);
+      const opt2 = opt1.cloneNode(true);
+      tkSel.appendChild(opt2);
+    });
+  }
+
+  const STORAGE_KEY = 'gameplan_data_v1';
+  let minuteStep = 15;
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        events, tasks, idCounter, minuteStep, theme, completions,
+        wakeTime: document.getElementById('wakeTime').value,
+        bedTime: document.getElementById('bedTime').value
+      }));
+    } catch (e) { /* storage not available (e.g. private browsing) — fail silently */ }
+    renderTodayDashboard();
+  }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        events = data.events || [];
+        tasks = data.tasks || [];
+        completions = data.completions || {};
+        // migrate: older saves predate recurring tasks, priority, and completion
+        tasks.forEach(t => {
+          if (t.recurring === undefined) t.recurring = false;
+          if (t.recurDays === undefined) t.recurDays = null;
+          if (t.priority === undefined) t.priority = 'normal';
+          if (t.completed === undefined) t.completed = false;
+          if (t.completedSessions === undefined) t.completedSessions = [];
+        });
+        idCounter = data.idCounter || 1;
+        if (data.minuteStep) minuteStep = data.minuteStep;
+        // theme defaults to 'dark' for saves made before the theme option existed
+        theme = data.theme || 'dark';
+        if (data.wakeTime) document.getElementById('wakeTime').value = data.wakeTime;
+        if (data.bedTime) document.getElementById('bedTime').value = data.bedTime;
+      }
+    } catch (e) { /* no saved data yet, or storage not available */ }
+    document.getElementById('minuteStepSetting').value = String(minuteStep);
+    document.getElementById('themeSetting').value = theme;
+    applyTheme();
+    buildAllTimePickers();
+    renderList();
+    updateSleepNote();
+    renderTodayDashboard();
+  }
+
+  // ---- Custom time pickers ----
+  // Mobile Safari ignores the native "step" attribute on <input type="time">
+  // (unresolved WebKit bug), so the picker always shows every minute. These
+  // dropdowns replace that native picker; the original <input type="time">
+  // stays in the DOM (hidden) as the source of truth so nothing downstream
+  // that reads its .value has to change.
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function to24(hour12, minute, ampm) {
+    let h = hour12 % 12;
+    if (ampm === 'PM') h += 12;
+    return pad2(h) + ':' + pad2(minute);
+  }
+
+  function from24(value) {
+    const [hh, mm] = value.split(':').map(Number);
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    let h12 = hh % 12;
+    if (h12 === 0) h12 = 12;
+    return { hour: h12, minute: mm, ampm };
+  }
+
+  function minsToHHMM(mins) {
+    return pad2(Math.floor(mins / 60)) + ':' + pad2(mins % 60);
+  }
+
+  function populateTimePicker(wrap) {
+    const hourSel = wrap.querySelector('.tp-hour');
+    const minSel = wrap.querySelector('.tp-min');
+    hourSel.innerHTML = '';
+    for (let h = 1; h <= 12; h++) {
+      const opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      hourSel.appendChild(opt);
+    }
+    minSel.innerHTML = '';
+    for (let m = 0; m < 60; m += minuteStep) {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = pad2(m);
+      minSel.appendChild(opt);
+    }
+  }
+
+  function syncPickerFromHidden(id) {
+    const hidden = document.getElementById(id);
+    const wrap = document.querySelector('.timepick[data-target="' + id + '"]');
+    if (!hidden || !wrap || !hidden.value) return;
+    const { hour, minute, ampm } = from24(hidden.value);
+    const nearestMin = Math.round(minute / minuteStep) * minuteStep % 60;
+    wrap.querySelector('.tp-hour').value = hour;
+    wrap.querySelector('.tp-min').value = nearestMin;
+    wrap.querySelector('.tp-ampm').value = ampm;
+  }
+
+  function wireTimePicker(id, onChangeExtra) {
+    const hidden = document.getElementById(id);
+    const wrap = document.querySelector('.timepick[data-target="' + id + '"]');
+    if (!hidden || !wrap) return;
+    populateTimePicker(wrap);
+    syncPickerFromHidden(id);
+    const update = () => {
+      const h = parseInt(wrap.querySelector('.tp-hour').value, 10);
+      const m = parseInt(wrap.querySelector('.tp-min').value, 10);
+      const ap = wrap.querySelector('.tp-ampm').value;
+      hidden.value = to24(h, m, ap);
+      if (onChangeExtra) onChangeExtra();
+    };
+    wrap.querySelectorAll('select').forEach(sel => sel.addEventListener('change', update));
+  }
+
+  function buildAllTimePickers() {
+    wireTimePicker('wakeTime', () => { updateSleepNote(); saveData(); });
+    wireTimePicker('bedTime', () => { updateSleepNote(); saveData(); });
+    wireTimePicker('evStart');
+    wireTimePicker('evEnd');
+  }
+
+  document.getElementById('minuteStepSetting').addEventListener('change', (e) => {
+    minuteStep = parseInt(e.target.value, 10);
+    buildAllTimePickers();
+    saveData();
+  });
+
+  // ---- Quick duration chips (fast entry for adding several tasks in a row) ----
+  function highlightDurationChip(val) {
+    document.querySelectorAll('#durationChips .chip').forEach(c => {
+      c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
+    });
+  }
+
+  function wireDurationChips() {
+    const sel = document.getElementById('tkDuration');
+    document.querySelectorAll('#durationChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        sel.value = c.dataset.val;
+        highlightDurationChip(parseInt(c.dataset.val, 10));
+      });
+    });
+  }
+  wireDurationChips();
+
+  // ---- Priority chips ----
+  function highlightPriorityChip(val) {
+    document.querySelectorAll('#priorityChips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.priority === val);
+    });
+  }
+
+  function wirePriorityChips() {
+    document.querySelectorAll('#priorityChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        tkPriority = c.dataset.priority;
+        highlightPriorityChip(tkPriority);
+      });
+    });
+  }
+  wirePriorityChips();
+
+  // ---- "More options" disclosure on the task form ----
+  function toggleMoreOptions(forceOpen) {
+    const fields = document.getElementById('moreOptionsFields');
+    const toggle = document.getElementById('moreOptionsToggle');
+    const isOpen = forceOpen !== undefined ? forceOpen : !fields.classList.contains('open');
+    fields.classList.toggle('open', isOpen);
+    toggle.classList.toggle('open', isOpen);
+  }
+
+  // ---- Recurring task day-of-week chips ----
+  function renderRecurDayChips() {
+    document.querySelectorAll('#recurDayChips .chip').forEach(c => {
+      c.classList.toggle('active', tkRecurDays.has(parseInt(c.dataset.dow, 10)));
+    });
+  }
+
+  function wireRecurDayChips() {
+    document.querySelectorAll('#recurDayChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        const dow = parseInt(c.dataset.dow, 10);
+        if (tkRecurDays.has(dow)) tkRecurDays.delete(dow); else tkRecurDays.add(dow);
+        renderRecurDayChips();
+      });
+    });
+  }
+  wireRecurDayChips();
+
+  function toggleRecurringUI(isRecurring) {
+    document.getElementById('dueField').classList.toggle('hidden', isRecurring);
+    document.getElementById('recurDaysField').classList.toggle('hidden', !isRecurring);
+    document.getElementById('splitLine').classList.toggle('hidden', isRecurring);
+    if (isRecurring) {
+      document.getElementById('tkSplit').checked = false;
+      document.getElementById('sessionLenField').classList.add('hidden');
+    }
+  }
+
+  // ---- Custom weekday selection for repeating events (e.g. a class on Tue/Thu) ----
+  function renderEventRepeatDayChips() {
+    document.querySelectorAll('#evRepeatDayChips .chip').forEach(c => {
+      c.classList.toggle('active', evRepeatDays.has(parseInt(c.dataset.dow, 10)));
+    });
+  }
+
+  function wireEventRepeatDayChips() {
+    document.querySelectorAll('#evRepeatDayChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        const dow = parseInt(c.dataset.dow, 10);
+        if (evRepeatDays.has(dow)) evRepeatDays.delete(dow); else evRepeatDays.add(dow);
+        renderEventRepeatDayChips();
+      });
+    });
+  }
+  wireEventRepeatDayChips();
+
+  function toggleEventRepeatUI(isRepeating) {
+    document.getElementById('evDayField').classList.toggle('hidden', isRepeating);
+    document.getElementById('evRepeatDaysField').classList.toggle('hidden', !isRepeating);
+  }
+
+  // ---- Settings menu (time steps + theme) ----
+  let settingsMenuOpen = false;
+  let settingsMenuCloseTimer = null;
+
+  function toggleSettingsMenu() {
+    if (settingsMenuOpen) { closeSettingsMenu(); return; }
+    const panel = document.getElementById('settingsPanel');
+    if (settingsMenuCloseTimer) { clearTimeout(settingsMenuCloseTimer); settingsMenuCloseTimer = null; }
+    panel.classList.remove('hidden');
+    void panel.offsetHeight; // force layout so the fade/slide-in actually transitions from the closed state
+    panel.classList.add('open');
+    settingsMenuOpen = true;
+  }
+
+  function closeSettingsMenu() {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.remove('open');
+    settingsMenuOpen = false;
+    settingsMenuCloseTimer = setTimeout(() => {
+      panel.classList.add('hidden');
+      settingsMenuCloseTimer = null;
+    }, 200);
+  }
+
+  function computeAutoTheme() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    if (wake < bed) return (nowMins >= wake && nowMins < bed) ? 'light' : 'dark';
+    return (nowMins >= wake || nowMins < bed) ? 'light' : 'dark';
+  }
+
+  function applyTheme() {
+    const effective = theme === 'auto' ? computeAutoTheme() : theme;
+    document.documentElement.setAttribute('data-theme', effective === 'light' ? 'light' : 'dark');
+  }
+
+  document.getElementById('themeSetting').addEventListener('change', (e) => {
+    theme = e.target.value;
+    applyTheme();
+    saveData();
+  });
+
+  // Re-check every 5 minutes so Auto mode actually switches while the app stays open
+  setInterval(() => { if (theme === 'auto') applyTheme(); }, 5 * 60 * 1000);
+
+  // ---- Fast entry: Enter submits, focus returns to the name field ----
+  document.getElementById('tkName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+  });
+  document.getElementById('evName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addEvent(); }
+  });
+
+  function toMinutes(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function formatMinutes(mins) {
+    let h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  function updateSleepNote() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const sleepMins = (24 * 60 - bed) + wake;
+    const hrs = (sleepMins / 60).toFixed(1);
+    const note = document.getElementById('sleepNote');
+    if (sleepMins < 480) {
+      note.textContent = `That's only ${hrs}h of sleep — under 8 hours. Consider an earlier bedtime or later wake time.`;
+      note.classList.add('warn');
+    } else {
+      note.textContent = `${hrs}h of sleep protected each night. Nothing gets scheduled during that window.`;
+      note.classList.remove('warn');
+    }
+  }
+
+  function switchTab(which) {
+    document.getElementById('tabEvent').classList.toggle('active', which === 'event');
+    document.getElementById('tabTask').classList.toggle('active', which === 'task');
+    document.getElementById('eventForm').classList.toggle('hidden', which !== 'event');
+    document.getElementById('taskForm').classList.toggle('hidden', which !== 'task');
+  }
+
+  function addEvent() {
+    const name = document.getElementById('evName').value.trim();
+    const offset = parseInt(document.getElementById('evDay').value, 10);
+    const start = document.getElementById('evStart').value;
+    const end = document.getElementById('evEnd').value;
+    const repeating = document.getElementById('evRepeatToggle').checked;
+    if (!name || !start || !end) return;
+    const s = toMinutes(start), e = toMinutes(end);
+    if (e <= s) { alert('End time needs to be after start time.'); return; }
+
+    if (editingEventId !== null) {
+      const idx = events.findIndex(x => x.id === editingEventId);
+      if (idx !== -1) events[idx] = { ...events[idx], name, offset, start: s, end: e };
+      cancelEdit();
+    } else if (repeating) {
+      if (evRepeatDays.size === 0) { alert('Pick at least one day for this to repeat on.'); return; }
+      WEEK_DAYS.forEach(d => {
+        if (evRepeatDays.has(d.dow)) {
+          events.push({ id: idCounter++, name, offset: d.offset, start: s, end: e });
+        }
+      });
+    } else {
+      events.push({ id: idCounter++, name, offset, start: s, end: e });
+    }
+    document.getElementById('evName').value = '';
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    renderList();
+    saveData();
+    document.getElementById('evName').focus();
+  }
+
+  const PREF_LABEL = { any: 'No preference', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
+  const PREF_BAND = {
+    morning: { start: 0, end: 12 * 60 },
+    afternoon: { start: 12 * 60, end: 17 * 60 },
+    evening: { start: 17 * 60, end: 24 * 60 }
+  };
+
+  function addTask() {
+    const name = document.getElementById('tkName').value.trim();
+    const duration = parseInt(document.getElementById('tkDuration').value, 10);
+    const pref = document.getElementById('tkPref').value;
+    const recurring = document.getElementById('tkRecurring').checked;
+    const priority = tkPriority;
+    if (!name) return;
+
+    let taskData;
+    if (recurring) {
+      if (tkRecurDays.size === 0) { alert('Pick at least one day for this task to repeat on.'); return; }
+      taskData = { name, duration, pref, priority, recurring: true, recurDays: [...tkRecurDays], dueOffset: null, split: false, sessionLen: null };
+    } else {
+      const dueOffset = parseInt(document.getElementById('tkDue').value, 10);
+      const split = document.getElementById('tkSplit').checked;
+      const sessionLen = parseInt(document.getElementById('tkSessionLen').value, 10);
+      taskData = { name, duration, dueOffset, pref, priority, split, sessionLen, recurring: false, recurDays: null };
+    }
+
+    if (editingTaskId !== null) {
+      const idx = tasks.findIndex(x => x.id === editingTaskId);
+      if (idx !== -1) {
+        const prev = tasks[idx];
+        const keepSessions = !!prev.split && !!taskData.split;
+        tasks[idx] = {
+          id: prev.id,
+          ...taskData,
+          completed: (!taskData.recurring && !taskData.split) ? !!prev.completed : false,
+          completedSessions: keepSessions ? (prev.completedSessions || []) : []
+        };
+      }
+      cancelEdit();
+    } else {
+      tasks.push({ id: idCounter++, completed: false, completedSessions: [], ...taskData });
+    }
+
+    document.getElementById('tkName').value = '';
+    document.getElementById('tkSplit').checked = false;
+    document.getElementById('sessionLenField').classList.add('hidden');
+    renderList();
+    saveData();
+    document.getElementById('tkName').focus();
+  }
+
+  function removeItem(id, type) {
+    if (type === 'event') events = events.filter(x => x.id !== id);
+    else tasks = tasks.filter(x => x.id !== id);
+    if (editingEventId === id || editingTaskId === id) cancelEdit();
+    renderList();
+    saveData();
+  }
+
+  function dayLabelFor(offset) {
+    if (offset === null || offset === undefined) return '';
+    const d = WEEK_DAYS.find(x => x.offset === offset);
+    return d ? `${d.label} (${d.dateStr})` : '';
+  }
+
+  const DOW_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function recurDaysLabel(days) {
+    return [...(days || [])].sort((a, b) => a - b).map(d => DOW_ABBR[d]).join('/');
+  }
+
+  // ---- Editing existing items ----
+  function setFormEditMode(type, isEditing) {
+    if (type === 'event') {
+      document.getElementById('evAddBtn').textContent = isEditing ? 'Save changes' : 'Add to schedule';
+      document.getElementById('evEditBanner').classList.toggle('hidden', !isEditing);
+      document.getElementById('evRepeatSection').classList.toggle('hidden', isEditing);
+    } else {
+      document.getElementById('tkAddBtn').textContent = isEditing ? 'Save changes' : 'Add to list';
+      document.getElementById('tkEditBanner').classList.toggle('hidden', !isEditing);
+    }
+  }
+
+  function editEvent(id) {
+    const ev = events.find(x => x.id === id);
+    if (!ev) return;
+    editingTaskId = null;
+    editingEventId = id;
+    switchTab('event');
+    document.getElementById('evName').value = ev.name;
+    document.getElementById('evDay').value = ev.offset;
+    document.getElementById('evStart').value = minsToHHMM(ev.start);
+    document.getElementById('evEnd').value = minsToHHMM(ev.end);
+    syncPickerFromHidden('evStart');
+    syncPickerFromHidden('evEnd');
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    setFormEditMode('task', false);
+    setFormEditMode('event', true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function editTask(id) {
+    const tk = tasks.find(x => x.id === id);
+    if (!tk) return;
+    editingEventId = null;
+    editingTaskId = id;
+    switchTab('task');
+    document.getElementById('tkName').value = tk.name;
+    document.getElementById('tkDuration').value = String(tk.duration);
+    highlightDurationChip(tk.duration);
+    document.getElementById('tkPref').value = tk.pref;
+    tkPriority = tk.priority || 'normal';
+    highlightPriorityChip(tkPriority);
+    document.getElementById('tkRecurring').checked = !!tk.recurring;
+    toggleRecurringUI(!!tk.recurring);
+    if (tk.recurring) {
+      tkRecurDays = new Set(tk.recurDays || []);
+      renderRecurDayChips();
+    } else {
+      tkRecurDays = new Set();
+      renderRecurDayChips();
+      document.getElementById('tkDue').value = tk.dueOffset;
+      document.getElementById('tkSplit').checked = !!tk.split;
+      document.getElementById('sessionLenField').classList.toggle('hidden', !tk.split);
+      if (tk.split) document.getElementById('tkSessionLen').value = String(tk.sessionLen);
+    }
+    // Surface "More options" automatically if it holds anything non-default, so the
+    // edit doesn't hide state the task actually has.
+    toggleMoreOptions(tk.pref !== 'any' || !!tk.split || !!tk.recurring);
+    setFormEditMode('event', false);
+    setFormEditMode('task', true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    editingEventId = null;
+    editingTaskId = null;
+    document.getElementById('evName').value = '';
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    setFormEditMode('event', false);
+    document.getElementById('tkName').value = '';
+    document.getElementById('tkSplit').checked = false;
+    document.getElementById('sessionLenField').classList.add('hidden');
+    document.getElementById('tkRecurring').checked = false;
+    toggleRecurringUI(false);
+    tkRecurDays = new Set();
+    renderRecurDayChips();
+    tkPriority = 'normal';
+    highlightPriorityChip('normal');
+    toggleMoreOptions(false);
+    setFormEditMode('task', false);
+  }
+
+  function renderList() {
+    const wrap = document.getElementById('itemList');
+    if (events.length === 0 && tasks.length === 0) {
+      wrap.innerHTML = '<div class="empty">Nothing added yet — start with classes and practices, then add tasks with a due day.</div>';
+      return;
+    }
+    let html = '';
+    [...events].sort((a, b) => a.offset - b.offset || a.start - b.start).forEach(ev => {
+      html += `<div class="item" onclick="editEvent(${ev.id})" title="Tap to edit">
+        <div class="info"><div class="t">${escapeHtml(ev.name)}</div><div class="d">${dayLabelFor(ev.offset)} &middot; ${formatMinutes(ev.start)} – ${formatMinutes(ev.end)}</div></div>
+        <button class="remove" onclick="event.stopPropagation(); removeItem(${ev.id}, 'event')">&times;</button>
+      </div>`;
+    });
+    [...tasks].sort((a, b) => (a.recurring ? -1 : 0) - (b.recurring ? -1 : 0) || (a.dueOffset ?? 99) - (b.dueOffset ?? 99)).forEach(tk => {
+      const splitNote = tk.split ? ` &middot; split into ${Math.ceil(tk.duration / tk.sessionLen)}x ${tk.sessionLen}-min sessions` : '';
+      const whenNote = tk.recurring ? `Every ${recurDaysLabel(tk.recurDays)}` : `Due ${dayLabelFor(tk.dueOffset)}`;
+      const priorityTag = tk.priority && tk.priority !== 'normal'
+        ? ` <span class="priority-tag ${tk.priority}">${PRIORITY_LABEL[tk.priority]}</span>` : '';
+      // Recurring tasks don't have one "done" state — that's tracked per day on the Today dashboard.
+      const checkCircle = tk.recurring
+        ? ''
+        : `<div class="check-circle small${tk.completed ? ' checked' : ''}" onclick="event.stopPropagation(); toggleTaskDoneFromList(${tk.id})"></div>`;
+      html += `<div class="item task${tk.completed ? ' done' : ''}" onclick="editTask(${tk.id})" title="Tap to edit">
+        ${checkCircle}<div class="info"><div class="t">${escapeHtml(tk.name)}${priorityTag}</div><div class="d">${tk.duration} min &middot; ${whenNote} &middot; ${PREF_LABEL[tk.pref]}${splitNote}</div></div>
+        <button class="remove" onclick="event.stopPropagation(); removeItem(${tk.id}, 'task')">&times;</button>
+      </div>`;
+    });
+    wrap.innerHTML = html;
+  }
+
+  // "Mark done" from the On the board list — for a split task this marks every session
+  // complete at once (a shortcut); for a simple task it's a plain toggle.
+  function toggleTaskDoneFromList(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const goingDone = !task.completed;
+    if (task.split) {
+      const numSessions = Math.max(1, Math.ceil(task.duration / task.sessionLen));
+      task.completedSessions = goingDone ? Array.from({ length: numSessions }, (_, i) => i) : [];
+    }
+    task.completed = goingDone;
+    saveData();
+    renderList();
+    if (lastScheduleData) { lastScheduleData = computeSchedule(); renderSchedule(); }
+  }
+
+  function buildWeek() {
+    const wrap = document.getElementById('timelineWrap');
+    if (events.length === 0 && tasks.length === 0) {
+      wrap.innerHTML = '<div class="empty">Add a few classes/events and tasks first, then build your week.</div>';
+      lastScheduleData = null;
+      return;
+    }
+    lastScheduleData = computeSchedule();
+    renderSchedule();
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Expand each task into one or more schedulable units:
+  // recurring tasks become one unit per matching weekday, split tasks become one unit per
+  // not-yet-completed session, everything else is a single unit. A fully completed task
+  // (or a split task whose sessions are all done) is excluded entirely — nothing left to schedule.
+  function expandTask(task) {
+    if (task.completed) return [];
+    if (task.recurring) {
+      const units = [];
+      WEEK_DAYS.forEach(d => {
+        if (task.recurDays.includes(d.dow)) {
+          units.push({ ...task, unitName: task.name, unitDuration: task.duration, targetOffset: d.offset, forceOffset: d.offset, dueOffset: d.offset, sessionIndex: null });
+        }
+      });
+      return units;
+    }
+    if (!task.split) {
+      return [{ ...task, unitName: task.name, unitDuration: task.duration, targetOffset: null, sessionIndex: null }];
+    }
+    const numSessions = Math.max(1, Math.ceil(task.duration / task.sessionLen));
+    const doneSessions = new Set(task.completedSessions || []);
+    const units = [];
+    for (let i = 0; i < numSessions; i++) {
+      if (doneSessions.has(i)) continue;
+      const remaining = task.duration - task.sessionLen * i;
+      const dur = Math.min(task.sessionLen, remaining);
+      const target = Math.min(task.dueOffset, Math.floor((i * (task.dueOffset + 1)) / numSessions));
+      units.push({ ...task, unitName: `${task.name} (session ${i + 1}/${numSessions})`, unitDuration: dur, targetOffset: target, sessionIndex: i });
+    }
+    return units;
+  }
+
+  // Recurring units are pinned to their one matching day; everything else tries its
+  // preferred/target day first, then falls back through earlier days up to the due day.
+  function offsetOrder(unit) {
+    if (unit.forceOffset !== null && unit.forceOffset !== undefined) return [unit.forceOffset];
+    const full = Array.from({ length: unit.dueOffset + 1 }, (_, i) => i);
+    if (unit.targetOffset === null || unit.targetOffset === undefined) return full;
+    return [unit.targetOffset, ...full.filter(o => o !== unit.targetOffset)];
+  }
+
+  function computeSchedule() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const dayWindow = bed - wake;
+
+    // Per-day working gaps, computed fresh from each day's fixed events
+    const dayGaps = {};
+    const dayConflicts = {};
+    WEEK_DAYS.forEach(d => {
+      const dayEvents = events.filter(e => e.offset === d.offset).sort((a, b) => a.start - b.start);
+      let gaps = [];
+      let cursor = wake;
+      const conflicts = [];
+      dayEvents.forEach(ev => {
+        if (ev.start < cursor) {
+          const prev = dayEvents.find(o => o.end === cursor) || dayEvents[dayEvents.indexOf(ev) - 1];
+          conflicts.push(`"${escapeHtml(ev.name)}" overlaps with "${escapeHtml(prev ? prev.name : 'another event')}"`);
+        }
+        if (ev.start > cursor) gaps.push({ start: cursor, end: ev.start });
+        cursor = Math.max(cursor, ev.end);
+      });
+      if (cursor < bed) gaps.push({ start: cursor, end: bed });
+      dayGaps[d.offset] = gaps;
+      dayConflicts[d.offset] = conflicts;
+    });
+
+    let units = tasks.flatMap(expandTask);
+    // Deadline first (never let priority bump something due sooner) — within the same due
+    // day, higher priority claims slots first; then earlier target day; longer units as a tiebreak.
+    units.sort((a, b) =>
+      a.dueOffset - b.dueOffset
+      || (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1)
+      || (a.targetOffset ?? 0) - (b.targetOffset ?? 0)
+      || b.unitDuration - a.unitDuration
+    );
+
+    // Try to fit `duration` inside a gap, restricted to [windowStart, windowEnd).
+    // Best-fit: picks the smallest gap that still works, so large open blocks of time
+    // stay intact for whatever needs them later instead of getting chipped away first-come.
+    function tryPlace(gaps, duration, windowStart, windowEnd) {
+      let bestIdx = -1, bestSize = Infinity, bestStart = null;
+      for (let i = 0; i < gaps.length; i++) {
+        const g = gaps[i];
+        const s = Math.max(g.start, windowStart);
+        const e = Math.min(g.end, windowEnd);
+        const avail = e - s;
+        if (avail >= duration && avail < bestSize) {
+          bestSize = avail; bestIdx = i; bestStart = s;
+        }
+      }
+      if (bestIdx === -1) return null;
+      const g = gaps[bestIdx];
+      const placeStart = bestStart, placeEnd = bestStart + duration;
+      const remainder = [];
+      if (g.start < placeStart) remainder.push({ start: g.start, end: placeStart });
+      if (placeEnd < g.end) remainder.push({ start: placeEnd, end: g.end });
+      gaps.splice(bestIdx, 1, ...remainder);
+      return placeStart;
+    }
+
+    const placedByDay = {};
+    WEEK_DAYS.forEach(d => placedByDay[d.offset] = []);
+    let unplacedTasks = [];
+
+    units.forEach(unit => {
+      const band = PREF_BAND[unit.pref];
+      const order = offsetOrder(unit);
+      let result = null;
+
+      if (band) {
+        for (const offset of order) {
+          const gaps = dayGaps[offset];
+          if (!gaps) continue;
+          const start = tryPlace(gaps, unit.unitDuration, band.start, band.end);
+          if (start !== null) { result = { offset, start, matchedPref: true }; break; }
+        }
+      }
+      if (!result) {
+        for (const offset of order) {
+          const gaps = dayGaps[offset];
+          if (!gaps) continue;
+          const start = tryPlace(gaps, unit.unitDuration, 0, 24 * 60);
+          if (start !== null) { result = { offset, start, matchedPref: false }; break; }
+        }
+      }
+
+      if (result) {
+        placedByDay[result.offset].push({ ...unit, name: unit.unitName, start: result.start, end: result.start + unit.unitDuration, matchedPref: result.matchedPref });
+      } else {
+        unplacedTasks.push(unit.unitName);
+      }
+    });
+
+    // Weekly summary stats
+    let totalFree = 0;
+    let busiestDay = null;
+    let overloadedCount = 0;
+    const overloadedDayOffsets = new Set();
+    WEEK_DAYS.forEach(d => {
+      const busy = events.filter(e => e.offset === d.offset).reduce((sum, e) => sum + (e.end - e.start), 0)
+        + placedByDay[d.offset].reduce((sum, t) => sum + (t.end - t.start), 0);
+      const free = Math.max(0, dayWindow - busy);
+      totalFree += free;
+      if (!busiestDay || free < busiestDay.free) busiestDay = { label: d.label, free };
+      if (free < 60) { overloadedCount++; overloadedDayOffsets.add(d.offset); }
+    });
+
+    return { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets };
+  }
+
+  function renderSchedule() {
+    const wrap = document.getElementById('timelineWrap');
+    const data = lastScheduleData;
+    if (!data) return;
+    const { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets } = data;
+
+    let html = `<div class="summary-card">
+      <div class="s-title">This week at a glance</div>
+      <ul>
+        <li>${(totalFree / 60).toFixed(1)}h free across the week</li>
+        <li${overloadedCount > 0 ? ' class="warn"' : ''}>Busiest day: ${busiestDay.label} (only ${(busiestDay.free / 60).toFixed(1)}h free)</li>
+        ${overloadedCount > 0 ? `<li class="warn">${overloadedCount} day${overloadedCount > 1 ? 's' : ''} packed tight (under 1h free)</li>` : ''}
+        ${unplacedTasks.length > 0 ? `<li class="warn">${unplacedTasks.length} session${unplacedTasks.length > 1 ? 's' : ''} couldn't fit before their due day</li>` : ''}
+      </ul>
+    </div>`;
+
+    let anythingShown = false;
+
+    WEEK_DAYS.forEach(d => {
+      const dayEvents = events.filter(e => e.offset === d.offset).map(e => ({ ...e, type: 'fixed' }));
+      const dayTasks = placedByDay[d.offset].map(t => ({ ...t, type: 'task' }));
+      if (dayEvents.length === 0 && dayTasks.length === 0) return;
+      anythingShown = true;
+
+      const blocks = [...dayEvents, ...dayTasks].sort((a, b) => a.start - b.start);
+
+      html += `<div class="day-section">
+        <div class="day-heading"><span>${escapeHtml(d.label)}</span><span class="sub">${d.dateStr}</span></div>`;
+
+      if (dayConflicts[d.offset].length > 0) {
+        html += `<div class="day-warn">⚠ Conflict: ${dayConflicts[d.offset].join('; ')}.</div>`;
+      }
+      if (overloadedDayOffsets.has(d.offset)) {
+        html += `<div class="day-warn">⚠ Packed day — under an hour free between wake and bed.</div>`;
+      }
+
+      blocks.forEach(b => {
+        const taskMeta = b.recurring ? 'recurring' : ('due ' + dayLabelFor(b.dueOffset));
+        html += `<div class="tl-item">
+          <div class="tl-time">${formatMinutes(b.start)}</div>
+          <div class="tl-line"><div class="tl-dot ${b.type === 'task' ? 'task' : ''}"></div></div>
+          <div class="tl-block ${b.type === 'fixed' ? 'fixed' : 'task-block'}">
+            <div class="name">${escapeHtml(b.name)}</div>
+            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${b.type === 'task' ? ' &middot; ' + taskMeta + (b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '') : ''}</div>
+          </div>
+        </div>`;
+      });
+
+      html += `<div class="tl-item">
+        <div class="tl-time">${formatMinutes(bed)}</div>
+        <div class="tl-line"><div class="tl-dot sleep"></div></div>
+        <div class="tl-block sleep-block">
+          <div class="name">Sleep</div>
+          <div class="meta">${formatMinutes(bed)} – ${formatMinutes(wake)} next day &middot; protected, nothing gets scheduled here</div>
+        </div>
+      </div>`;
+
+      html += `</div>`;
+    });
+
+    if (!anythingShown) {
+      html += '<div class="empty">Nothing scheduled this week.</div>';
+    }
+
+    if (unplacedTasks.length > 0) {
+      html += `<div class="leftover">Couldn't fit: ${escapeHtml(unplacedTasks.join(', '))}. Try freeing up time or moving the due day.</div>`;
+    }
+
+    wrap.innerHTML = html;
+  }
+
+  // ==================== MAIN NAV ====================
+
+  function switchMainView(view) {
+    mainView = view;
+    document.getElementById('navToday').classList.toggle('active', view === 'today');
+    document.getElementById('navPlan').classList.toggle('active', view === 'plan');
+    document.getElementById('todayView').classList.toggle('hidden', view !== 'today');
+    document.getElementById('planView').classList.toggle('hidden', view !== 'plan');
+    if (view === 'today') renderTodayDashboard();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goAddTask() {
+    switchMainView('plan');
+    switchTab('task');
+    setTimeout(() => document.getElementById('tkName').focus(), 250);
+  }
+
+  // ==================== COMPLETION ====================
+  // Simple tasks: a plain `completed` flag (done forever, drops out of scheduling).
+  // Split tasks: `completedSessions` tracks which sessions are done; all-done implies `completed`.
+  // Recurring tasks: no single "done" state — each calendar day is tracked separately in
+  // `completions`, keyed by date so a check-off doesn't bleed into next week's occurrence.
+
+  function isInstanceComplete(task, dateKey, sessionIndex) {
+    if (task.recurring) return !!completions[task.id + ':' + dateKey];
+    if (task.split) return (task.completedSessions || []).includes(sessionIndex);
+    return !!task.completed;
+  }
+
+  function setInstanceComplete(taskId, dateKey, sessionIndex, isComplete) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (task.recurring) {
+      const key = taskId + ':' + dateKey;
+      if (isComplete) completions[key] = true; else delete completions[key];
+    } else if (task.split) {
+      task.completedSessions = task.completedSessions || [];
+      const i = task.completedSessions.indexOf(sessionIndex);
+      if (isComplete && i === -1) task.completedSessions.push(sessionIndex);
+      if (!isComplete && i !== -1) task.completedSessions.splice(i, 1);
+      const numSessions = Math.max(1, Math.ceil(task.duration / task.sessionLen));
+      task.completed = task.completedSessions.length >= numSessions;
+    } else {
+      task.completed = isComplete;
+    }
+    saveData(); // also refreshes the Today dashboard
+    renderList();
+    if (lastScheduleData) { lastScheduleData = computeSchedule(); renderSchedule(); }
+  }
+
+  // ==================== TODAY DASHBOARD ====================
+
+  function greetingWord() {
+    const h = new Date().getHours();
+    if (h < 5) return 'Still up?';
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  function computeTodayBlocks() {
+    const schedule = computeSchedule();
+    const today = WEEK_DAYS[0];
+    const dayEvents = events.filter(e => e.offset === 0).map(e => ({ ...e, type: 'fixed' }));
+    const dayTasks = schedule.placedByDay[0].map(t => ({ ...t, type: 'task' }));
+    const blocks = [...dayEvents, ...dayTasks].sort((a, b) => a.start - b.start);
+    return { schedule, today, blocks };
+  }
+
+  function computeTodayProgress(blocks, dateKey) {
+    const taskBlocks = blocks.filter(b => b.type === 'task');
+    const total = taskBlocks.length;
+    const done = taskBlocks.filter(b => isInstanceComplete(b, dateKey, b.sessionIndex)).length;
+    return { total, done };
+  }
+
+  function minutesUntilLabel(mins) {
+    mins = Math.max(0, mins);
+    if (mins < 60) return `${mins}m`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function computeNextUp(blocks, dateKey, nowMins) {
+    const actionable = b => !(b.type === 'task' && isInstanceComplete(b, dateKey, b.sessionIndex));
+    const ongoing = blocks.find(b => b.start <= nowMins && nowMins < b.end && actionable(b));
+    if (ongoing) return { block: ongoing, status: 'now' };
+    const upcoming = blocks.filter(b => b.start >= nowMins && actionable(b)).sort((a, b) => a.start - b.start)[0];
+    if (upcoming) return { block: upcoming, status: 'next' };
+    return null;
+  }
+
+  function renderNextUpCard(next, dateKey, nowMins) {
+    if (!next) {
+      return `<div class="next-up-card now">
+        <div class="nu-label">ALL CAUGHT UP</div>
+        <div class="empty-msg">Nothing left on today's plan. Nice work!</div>
+      </div>`;
+    }
+    const { block, status } = next;
+    const untilText = status === 'now'
+      ? `Now &middot; until ${formatMinutes(block.end)}`
+      : `${formatMinutes(block.start)} &middot; in ${minutesUntilLabel(block.start - nowMins)}`;
+    const startBtn = block.type === 'task'
+      ? `<button class="start-btn" onclick="startFocus(${block.id}, '${dateKey}', ${block.sessionIndex ?? 'null'}, ${block.end - block.start})">&#9654; Start</button>`
+      : '';
+    return `<div class="next-up-card ${status === 'now' ? 'now' : ''}">
+      <div class="nu-label">${status === 'now' ? 'HAPPENING NOW' : 'NEXT UP'}</div>
+      <div class="nu-name">${escapeHtml(block.name)}</div>
+      <div class="nu-meta">${untilText}</div>
+      ${startBtn}
+    </div>`;
+  }
+
+  function renderDashboardBlock(b, dateKey, i) {
+    if (b.type === 'fixed') {
+      return `<div class="task-card fixed" style="animation-delay:${i * 30}ms">
+        <div class="check-circle static"></div>
+        <div class="tc-body">
+          <div class="tc-top"><div class="tc-name">${escapeHtml(b.name)}</div></div>
+          <div class="tc-meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}</div>
+        </div>
+      </div>`;
+    }
+    const done = isInstanceComplete(b, dateKey, b.sessionIndex);
+    const priorityTag = b.priority && b.priority !== 'normal' ? ` <span class="priority-tag ${b.priority}">${PRIORITY_LABEL[b.priority]}</span>` : '';
+    const missedPref = b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '';
+    return `<div class="task-card${done ? ' done' : ''}${b.priority === 'high' ? ' priority-high' : ''}" style="animation-delay:${i * 30}ms">
+      <div class="check-circle${done ? ' checked' : ''}" onclick="setInstanceComplete(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${!done})"></div>
+      <div class="tc-body">
+        <div class="tc-top"><div class="tc-name">${escapeHtml(b.name)}</div>${priorityTag}</div>
+        <div class="tc-meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${missedPref}</div>
+        ${!done ? `<div class="tc-actions"><button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button></div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // ---- "I have X minutes" — suggests from TODAY's own remaining plan, not the whole backlog,
+  // so it respects whatever the scheduler already decided about priority/preferences/deadlines.
+  let selectedMinutesFilter = null;
+
+  function findMinutesSuggestions(minutes, chipEl) {
+    selectedMinutesFilter = minutes;
+    document.querySelectorAll('#minutesChips .chip').forEach(c => c.classList.remove('active'));
+    if (chipEl) chipEl.classList.add('active');
+    renderMinutesResults();
+  }
+
+  function renderMinutesResults() {
+    const results = document.getElementById('minutesResults');
+    if (!results || selectedMinutesFilter === null) return;
+    const { blocks, today } = computeTodayBlocks();
+    const dateKey = today.dateKey;
+    const matches = blocks
+      .filter(b => b.type === 'task' && (b.end - b.start) <= selectedMinutesFilter && !isInstanceComplete(b, dateKey, b.sessionIndex))
+      .sort((a, b) => (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1) || a.start - b.start)
+      .slice(0, 3);
+    if (matches.length === 0) {
+      results.innerHTML = `<div class="empty">Nothing that short left on today's plan.</div>`;
+      return;
+    }
+    results.innerHTML = matches.map(b => `
+      <div class="suggestion-row">
+        <div class="sg-info">
+          <div class="t">${escapeHtml(b.name)}</div>
+          <div class="d">${b.end - b.start} min &middot; ${formatMinutes(b.start)}</div>
+        </div>
+        <button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button>
+      </div>`).join('');
+  }
+
+  function renderTodayDashboard() {
+    const container = document.getElementById('todayView');
+    if (!container) return;
+    selectedMinutesFilter = null;
+
+    const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    const greeting = `<div class="dash-greeting"><div class="h1">${greetingWord()}</div><div class="sub">${dateStr}</div></div>`;
+
+    if (events.length === 0 && tasks.length === 0) {
+      container.innerHTML = greeting + `<div class="dash-empty">
+        <div class="big">&#128197;</div>
+        Nothing on the board yet.<br>Add a class, practice, or task to get started.
+        <div><button class="add-cta" onclick="goAddTask()">+ Add a task</button></div>
+      </div>`;
+      return;
+    }
+
+    const { schedule, today, blocks } = computeTodayBlocks();
+    const dateKey = today.dateKey;
+    const { total, done } = computeTodayProgress(blocks, dateKey);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const next = computeNextUp(blocks, dateKey, nowMins);
+
+    let html = greeting;
+
+    if (total > 0) {
+      html += `<div class="progress-card">
+        <div class="progress-head"><span>Today's progress</span><span class="progress-frac">${done} / ${total} done</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }
+
+    html += renderNextUpCard(next, dateKey, nowMins);
+
+    html += `<div class="minutes-card">
+      <div class="mc-title">I have a few minutes free</div>
+      <div class="chip-row" id="minutesChips">
+        ${[10, 15, 20, 30, 45, 60].map(m => `<button type="button" class="chip" onclick="findMinutesSuggestions(${m}, this)">${m < 60 ? m + 'm' : '1h'}</button>`).join('')}
+      </div>
+      <div class="minutes-results" id="minutesResults"></div>
+    </div>`;
+
+    if (schedule.dayConflicts[0] && schedule.dayConflicts[0].length > 0) {
+      html += `<div class="day-warn">⚠ Conflict: ${schedule.dayConflicts[0].join('; ')}.</div>`;
+    }
+
+    html += `<div class="day-plan-title">Today's plan</div>`;
+    if (blocks.length === 0) {
+      html += `<div class="empty">Nothing scheduled for today — add a task or event, then check Plan &rarr; Build my week.</div>`;
+    } else {
+      blocks.forEach((b, i) => { html += renderDashboardBlock(b, dateKey, i); });
+    }
+
+    if (schedule.unplacedTasks && schedule.unplacedTasks.length > 0) {
+      html += `<div class="leftover">Couldn't fit: ${escapeHtml(schedule.unplacedTasks.join(', '))}. Check Plan for details.</div>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  // ==================== FOCUS TIMER ====================
+  let focusState = null;
+  let focusHideTimer = null;
+
+  function stopFocusInterval() {
+    if (focusState && focusState.intervalId) clearInterval(focusState.intervalId);
+  }
+
+  function startFocus(taskId, dateKey, sessionIndex, durationMinutes) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    stopFocusInterval();
+    if (focusHideTimer) { clearTimeout(focusHideTimer); focusHideTimer = null; }
+    const label = task.split
+      ? `${task.name} (session ${sessionIndex + 1}/${Math.max(1, Math.ceil(task.duration / task.sessionLen))})`
+      : task.name;
+    focusState = {
+      taskId, dateKey, sessionIndex, name: label,
+      remainingSeconds: durationMinutes * 60,
+      paused: false, finished: false, intervalId: null
+    };
+    renderFocusOverlay();
+    const el = document.getElementById('focusOverlay');
+    el.classList.remove('hidden');
+    void el.offsetHeight;
+    el.classList.add('open');
+    focusState.intervalId = setInterval(focusTick, 1000);
+  }
+
+  function focusTick() {
+    if (!focusState || focusState.paused || focusState.finished) return;
+    focusState.remainingSeconds--;
+    if (focusState.remainingSeconds <= 0) {
+      focusState.remainingSeconds = 0;
+      focusState.finished = true;
+      stopFocusInterval();
+    }
+    renderFocusOverlay();
+  }
+
+  function toggleFocusPause() {
+    if (!focusState || focusState.finished) return;
+    focusState.paused = !focusState.paused;
+    renderFocusOverlay();
+  }
+
+  function renderFocusOverlay() {
+    if (!focusState) return;
+    document.getElementById('focusLabel').textContent = focusState.finished ? "TIME'S UP" : (focusState.paused ? 'PAUSED' : 'FOCUS');
+    document.getElementById('focusName').textContent = focusState.name;
+    const m = Math.floor(focusState.remainingSeconds / 60);
+    const s = focusState.remainingSeconds % 60;
+    const timeEl = document.getElementById('focusTime');
+    timeEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    timeEl.classList.toggle('done-flash', focusState.finished);
+    const pauseBtn = document.getElementById('focusPauseBtn');
+    pauseBtn.textContent = focusState.paused ? 'Resume' : 'Pause';
+    pauseBtn.classList.toggle('hidden', focusState.finished);
+  }
+
+  function finishFocus(markDone) {
+    if (!focusState) { closeFocusOverlay(); return; }
+    stopFocusInterval();
+    if (markDone) setInstanceComplete(focusState.taskId, focusState.dateKey, focusState.sessionIndex, true);
+    closeFocusOverlay();
+  }
+
+  function closeFocusOverlay() {
+    const el = document.getElementById('focusOverlay');
+    el.classList.remove('open');
+    focusHideTimer = setTimeout(() => { el.classList.add('hidden'); focusHideTimer = null; }, 200);
+    stopFocusInterval();
+    focusState = null;
+  }
+
+  // These three run last, after every const/function above is defined — loadData()
+  // synchronously calls renderList(), which reads PREF_LABEL/DOW_ABBR etc., so running
+  // this any earlier throws a "Cannot access before initialization" TDZ error for any
+  // returning user who has saved tasks.
+  document.getElementById('todayLabel').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  populateDaySelects();
+  loadData();
+</script>
+</body>
+</html>
