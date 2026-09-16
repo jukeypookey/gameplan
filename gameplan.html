@@ -668,7 +668,7 @@
     transition: max-height 220ms ease, opacity 200ms ease;
   }
   #moreOptionsFields.open {
-    max-height: 600px;
+    max-height: 1200px;
     opacity: 1;
   }
 
@@ -759,6 +759,59 @@
     cursor: pointer;
     text-decoration: underline;
   }
+
+  .live-clock { font-variant-numeric: tabular-nums; }
+
+  .now-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px 72px; }
+  .now-line .bar { flex: 1; height: 2px; background: var(--red); }
+  .now-line .lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--red); flex-shrink: 0; }
+
+  .missed-tag { color: var(--red); font-weight: 600; }
+
+  .tl-block.past:not(.done) { opacity: 0.7; }
+  .tl-block.done .name { text-decoration: line-through; opacity: 0.65; }
+
+  .subtask-list { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .subtask-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--chalk-dim); }
+  .subtask-row.done { text-decoration: line-through; opacity: 0.6; }
+  .subtask-row .sc {
+    width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--chalk-dim);
+    flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .subtask-row .sc.checked { background: var(--teal); border-color: var(--teal); }
+  .subtask-row .sc.checked::after { content: '\2713'; font-size: 9px; color: #0b1c15; }
+
+  .subtask-editor { display: flex; gap: 6px; margin-top: 6px; }
+  .subtask-editor input { flex: 1; }
+  .subtask-editor button {
+    flex-shrink: 0; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--board-light); color: var(--chalk); cursor: pointer; font-size: 13px;
+  }
+  .subtask-draft-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .subtask-draft-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: var(--board-light); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 9px; font-size: 12.5px;
+  }
+  .subtask-draft-row button { background: none; border: none; color: var(--chalk-dim); cursor: pointer; font-size: 15px; padding: 0 2px; }
+
+  .category-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(169,188,174,0.15);
+    color: var(--chalk-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .notes-preview { font-size: 11.5px; color: var(--chalk-dim); margin-top: 4px; font-style: italic; }
+
+  .section-subtitle {
+    font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 1px; color: var(--chalk-dim);
+    margin: 18px 0 8px; text-transform: uppercase;
+  }
+
+  .whatnow-btn {
+    width: 100%; padding: 12px 0; border-radius: 8px; border: 1.5px solid var(--gold-dim);
+    background: transparent; color: var(--gold); font-weight: 700; font-size: 13.5px;
+    letter-spacing: 0.3px; cursor: pointer; font-family: inherit;
+  }
+  .whatnow-btn:active { transform: scale(0.98); }
 
   :root[data-theme="light"] {
     --board: #f4f1e6;
@@ -982,6 +1035,22 @@
           <button type="button" class="chip" data-dow="6">Sat</button>
         </div>
       </div>
+      <div class="field">
+        <label>Category</label>
+        <input type="text" id="tkCategory" placeholder="School, Chores, Personal... (optional)">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input type="text" id="tkNotes" placeholder="Any details worth remembering (optional)">
+      </div>
+      <div class="field">
+        <label>Subtasks</label>
+        <div class="subtask-draft-list" id="subtaskDraftList"></div>
+        <div class="subtask-editor">
+          <input type="text" id="subtaskDraftInput" placeholder="Add a subtask...">
+          <button type="button" onclick="addSubtaskDraft()">Add</button>
+        </div>
+      </div>
     </div>
     <button class="add-btn task" id="tkAddBtn" onclick="addTask()">Add to list</button>
   </div>
@@ -1098,8 +1167,15 @@
           if (t.priority === undefined) t.priority = 'normal';
           if (t.completed === undefined) t.completed = false;
           if (t.completedSessions === undefined) t.completedSessions = [];
+          if (t.category === undefined) t.category = '';
+          if (t.notes === undefined) t.notes = '';
+          if (t.subtasks === undefined) t.subtasks = [];
         });
         idCounter = data.idCounter || 1;
+        // Reseed the subtask id counter above every existing subtask id so ids stay
+        // unique even though the counter itself isn't persisted across reloads.
+        const maxSubtaskId = tasks.reduce((max, t) => (t.subtasks || []).reduce((m, s) => Math.max(m, s.id), max), 0);
+        subtaskDraftIdCounter = maxSubtaskId + 1;
         if (data.minuteStep) minuteStep = data.minuteStep;
         // theme defaults to 'dark' for saves made before the theme option existed
         theme = data.theme || 'dark';
@@ -1420,6 +1496,81 @@
     document.getElementById('evName').focus();
   }
 
+  // ---- Subtask drafting (used both when creating a new task and editing an existing one) ----
+  let subtaskDraft = [];
+  let subtaskDraftIdCounter = 1;
+
+  function renderSubtaskDraftList() {
+    const wrap = document.getElementById('subtaskDraftList');
+    wrap.innerHTML = subtaskDraft.map(s => `
+      <div class="subtask-draft-row">
+        <span>${escapeHtml(s.text)}</span>
+        <button type="button" onclick="removeSubtaskDraft(${s.id})" aria-label="Remove subtask">&times;</button>
+      </div>`).join('');
+  }
+
+  function addSubtaskDraft() {
+    const input = document.getElementById('subtaskDraftInput');
+    const text = input.value.trim();
+    if (!text) return;
+    subtaskDraft.push({ id: subtaskDraftIdCounter++, text, done: false });
+    input.value = '';
+    input.focus();
+    renderSubtaskDraftList();
+  }
+
+  function removeSubtaskDraft(id) {
+    subtaskDraft = subtaskDraft.filter(s => s.id !== id);
+    renderSubtaskDraftList();
+  }
+
+  document.getElementById('subtaskDraftInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addSubtaskDraft(); }
+  });
+
+  function toggleSubtask(taskId, subtaskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const st = (task.subtasks || []).find(s => s.id === subtaskId);
+    if (!st) return;
+    st.done = !st.done;
+    saveData();
+    renderList();
+  }
+
+  function renderSubtaskChecklist(task, stopClickPropagation) {
+    if (!task.subtasks || task.subtasks.length === 0) return '';
+    const stop = stopClickPropagation ? 'event.stopPropagation(); ' : '';
+    return `<div class="subtask-list">${task.subtasks.map(s => `
+      <div class="subtask-row${s.done ? ' done' : ''}">
+        <div class="sc${s.done ? ' checked' : ''}" onclick="${stop}toggleSubtask(${task.id}, ${s.id})"></div>
+        <span>${escapeHtml(s.text)}</span>
+      </div>`).join('')}</div>`;
+  }
+
+  function subtaskSummary(task) {
+    if (!task.subtasks || task.subtasks.length === 0) return '';
+    const done = task.subtasks.filter(s => s.done).length;
+    return `${done}/${task.subtasks.length} subtasks`;
+  }
+
+  // ---- Time remaining: for split tasks this is what's left across incomplete sessions;
+  // for everything else it's simply the full duration unless already completed.
+  function taskTimeRemaining(task) {
+    if (task.completed) return 0;
+    if (task.split) {
+      const numSessions = Math.max(1, Math.ceil(task.duration / task.sessionLen));
+      const done = new Set(task.completedSessions || []);
+      let remaining = 0;
+      for (let i = 0; i < numSessions; i++) {
+        if (done.has(i)) continue;
+        remaining += Math.min(task.sessionLen, task.duration - task.sessionLen * i);
+      }
+      return remaining;
+    }
+    return task.duration;
+  }
+
   const PREF_LABEL = { any: 'No preference', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
   const PREF_BAND = {
     morning: { start: 0, end: 12 * 60 },
@@ -1433,17 +1584,20 @@
     const pref = document.getElementById('tkPref').value;
     const recurring = document.getElementById('tkRecurring').checked;
     const priority = tkPriority;
+    const category = document.getElementById('tkCategory').value.trim();
+    const notes = document.getElementById('tkNotes').value.trim();
+    const subtasks = subtaskDraft.map(s => ({ id: s.id, text: s.text, done: false }));
     if (!name) return;
 
     let taskData;
     if (recurring) {
       if (tkRecurDays.size === 0) { alert('Pick at least one day for this task to repeat on.'); return; }
-      taskData = { name, duration, pref, priority, recurring: true, recurDays: [...tkRecurDays], dueOffset: null, split: false, sessionLen: null };
+      taskData = { name, duration, pref, priority, category, notes, subtasks, recurring: true, recurDays: [...tkRecurDays], dueOffset: null, split: false, sessionLen: null };
     } else {
       const dueOffset = parseInt(document.getElementById('tkDue').value, 10);
       const split = document.getElementById('tkSplit').checked;
       const sessionLen = parseInt(document.getElementById('tkSessionLen').value, 10);
-      taskData = { name, duration, dueOffset, pref, priority, split, sessionLen, recurring: false, recurDays: null };
+      taskData = { name, duration, dueOffset, pref, priority, category, notes, subtasks, split, sessionLen, recurring: false, recurDays: null };
     }
 
     if (editingTaskId !== null) {
@@ -1451,6 +1605,9 @@
       if (idx !== -1) {
         const prev = tasks[idx];
         const keepSessions = !!prev.split && !!taskData.split;
+        // Preserve done-state on subtasks that still exist under the same text after editing.
+        const prevDoneByText = new Map((prev.subtasks || []).map(s => [s.text, s.done]));
+        taskData.subtasks = taskData.subtasks.map(s => ({ ...s, done: !!prevDoneByText.get(s.text) }));
         tasks[idx] = {
           id: prev.id,
           ...taskData,
@@ -1464,6 +1621,10 @@
     }
 
     document.getElementById('tkName').value = '';
+    document.getElementById('tkCategory').value = '';
+    document.getElementById('tkNotes').value = '';
+    subtaskDraft = [];
+    renderSubtaskDraftList();
     document.getElementById('tkSplit').checked = false;
     document.getElementById('sessionLenField').classList.add('hidden');
     renderList();
@@ -1537,6 +1698,10 @@
     highlightPriorityChip(tkPriority);
     document.getElementById('tkRecurring').checked = !!tk.recurring;
     toggleRecurringUI(!!tk.recurring);
+    document.getElementById('tkCategory').value = tk.category || '';
+    document.getElementById('tkNotes').value = tk.notes || '';
+    subtaskDraft = (tk.subtasks || []).map(s => ({ id: s.id, text: s.text }));
+    renderSubtaskDraftList();
     if (tk.recurring) {
       tkRecurDays = new Set(tk.recurDays || []);
       renderRecurDayChips();
@@ -1550,7 +1715,7 @@
     }
     // Surface "More options" automatically if it holds anything non-default, so the
     // edit doesn't hide state the task actually has.
-    toggleMoreOptions(tk.pref !== 'any' || !!tk.split || !!tk.recurring);
+    toggleMoreOptions(tk.pref !== 'any' || !!tk.split || !!tk.recurring || !!tk.category || !!tk.notes || (tk.subtasks && tk.subtasks.length > 0));
     setFormEditMode('event', false);
     setFormEditMode('task', true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1574,6 +1739,10 @@
     renderRecurDayChips();
     tkPriority = 'normal';
     highlightPriorityChip('normal');
+    document.getElementById('tkCategory').value = '';
+    document.getElementById('tkNotes').value = '';
+    subtaskDraft = [];
+    renderSubtaskDraftList();
     toggleMoreOptions(false);
     setFormEditMode('task', false);
   }
@@ -1592,16 +1761,20 @@
       </div>`;
     });
     [...tasks].sort((a, b) => (a.recurring ? -1 : 0) - (b.recurring ? -1 : 0) || (a.dueOffset ?? 99) - (b.dueOffset ?? 99)).forEach(tk => {
-      const splitNote = tk.split ? ` &middot; split into ${Math.ceil(tk.duration / tk.sessionLen)}x ${tk.sessionLen}-min sessions` : '';
+      const remaining = taskTimeRemaining(tk);
+      const splitNote = tk.split ? ` &middot; ${remaining}m left of ${tk.duration}m (${tk.sessionLen}-min sessions)` : '';
       const whenNote = tk.recurring ? `Every ${recurDaysLabel(tk.recurDays)}` : `Due ${dayLabelFor(tk.dueOffset)}`;
       const priorityTag = tk.priority && tk.priority !== 'normal'
         ? ` <span class="priority-tag ${tk.priority}">${PRIORITY_LABEL[tk.priority]}</span>` : '';
+      const categoryTag = tk.category ? ` <span class="category-tag">${escapeHtml(tk.category)}</span>` : '';
+      const notesPreview = tk.notes ? `<div class="notes-preview">${escapeHtml(tk.notes)}</div>` : '';
+      const subtaskNote = tk.subtasks && tk.subtasks.length ? ` &middot; ${subtaskSummary(tk)}` : '';
       // Recurring tasks don't have one "done" state — that's tracked per day on the Today dashboard.
       const checkCircle = tk.recurring
         ? ''
         : `<div class="check-circle small${tk.completed ? ' checked' : ''}" onclick="event.stopPropagation(); toggleTaskDoneFromList(${tk.id})"></div>`;
       html += `<div class="item task${tk.completed ? ' done' : ''}" onclick="editTask(${tk.id})" title="Tap to edit">
-        ${checkCircle}<div class="info"><div class="t">${escapeHtml(tk.name)}${priorityTag}</div><div class="d">${tk.duration} min &middot; ${whenNote} &middot; ${PREF_LABEL[tk.pref]}${splitNote}</div></div>
+        ${checkCircle}<div class="info"><div class="t">${escapeHtml(tk.name)}${priorityTag}${categoryTag}</div><div class="d">${tk.duration} min &middot; ${whenNote} &middot; ${PREF_LABEL[tk.pref]}${splitNote}${subtaskNote}</div>${notesPreview}${renderSubtaskChecklist(tk, true)}</div>
         <button class="remove" onclick="event.stopPropagation(); removeItem(${tk.id}, 'task')">&times;</button>
       </div>`;
     });
@@ -1803,6 +1976,9 @@
     </div>`;
 
     let anythingShown = false;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const todayDateKey = WEEK_DAYS[0].dateKey;
 
     WEEK_DAYS.forEach(d => {
       const dayEvents = events.filter(e => e.offset === d.offset).map(e => ({ ...e, type: 'fixed' }));
@@ -1811,6 +1987,8 @@
       anythingShown = true;
 
       const blocks = [...dayEvents, ...dayTasks].sort((a, b) => a.start - b.start);
+      const isToday = d.offset === 0;
+      let markerPlaced = !isToday;
 
       html += `<div class="day-section">
         <div class="day-heading"><span>${escapeHtml(d.label)}</span><span class="sub">${d.dateStr}</span></div>`;
@@ -1823,16 +2001,25 @@
       }
 
       blocks.forEach(b => {
+        if (isToday && !markerPlaced && b.start > nowMins) {
+          html += `<div class="now-line"><div class="bar"></div><div class="lbl">NOW &middot; ${formatMinutes(nowMins)}</div><div class="bar"></div></div>`;
+          markerPlaced = true;
+        }
         const taskMeta = b.recurring ? 'recurring' : ('due ' + dayLabelFor(b.dueOffset));
+        const done = b.type === 'task' && isInstanceComplete(b, isToday ? todayDateKey : (d.dateKey), b.sessionIndex);
+        const missed = isToday && b.end <= nowMins && b.type === 'task' && !done;
         html += `<div class="tl-item">
           <div class="tl-time">${formatMinutes(b.start)}</div>
           <div class="tl-line"><div class="tl-dot ${b.type === 'task' ? 'task' : ''}"></div></div>
-          <div class="tl-block ${b.type === 'fixed' ? 'fixed' : 'task-block'}">
+          <div class="tl-block ${b.type === 'fixed' ? 'fixed' : 'task-block'}${done ? ' done' : ''}${(missed || (isToday && b.type === 'fixed' && b.end <= nowMins)) ? ' past' : ''}">
             <div class="name">${escapeHtml(b.name)}</div>
-            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${b.type === 'task' ? ' &middot; ' + taskMeta + (b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '') : ''}</div>
+            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${b.type === 'task' ? ' &middot; ' + taskMeta + (b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '') : ''}${missed ? ' &middot; <span class="missed-tag">missed</span>' : ''}</div>
           </div>
         </div>`;
       });
+      if (isToday && !markerPlaced) {
+        html += `<div class="now-line"><div class="bar"></div><div class="lbl">NOW &middot; ${formatMinutes(nowMins)}</div><div class="bar"></div></div>`;
+      }
 
       html += `<div class="tl-item">
         <div class="tl-time">${formatMinutes(bed)}</div>
@@ -1972,26 +2159,113 @@
     </div>`;
   }
 
-  function renderDashboardBlock(b, dateKey, i) {
+  function renderDashboardBlock(b, dateKey, i, nowMins) {
+    const isPastEnd = b.end <= nowMins;
     if (b.type === 'fixed') {
-      return `<div class="task-card fixed" style="animation-delay:${i * 30}ms">
-        <div class="check-circle static"></div>
-        <div class="tc-body">
-          <div class="tc-top"><div class="tc-name">${escapeHtml(b.name)}</div></div>
-          <div class="tc-meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}</div>
+      return `<div class="tl-item" style="animation-delay:${i * 30}ms">
+        <div class="tl-time">${formatMinutes(b.start)}</div>
+        <div class="tl-line"><div class="tl-dot"></div></div>
+        <div class="tl-block fixed${isPastEnd ? ' past' : ''}">
+          <div class="name">${escapeHtml(b.name)}</div>
+          <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}</div>
         </div>
       </div>`;
     }
     const done = isInstanceComplete(b, dateKey, b.sessionIndex);
+    const missed = isPastEnd && !done;
     const priorityTag = b.priority && b.priority !== 'normal' ? ` <span class="priority-tag ${b.priority}">${PRIORITY_LABEL[b.priority]}</span>` : '';
+    const categoryTag = b.category ? ` <span class="category-tag">${escapeHtml(b.category)}</span>` : '';
     const missedPref = b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '';
-    return `<div class="task-card${done ? ' done' : ''}${b.priority === 'high' ? ' priority-high' : ''}" style="animation-delay:${i * 30}ms">
-      <div class="check-circle${done ? ' checked' : ''}" onclick="setInstanceComplete(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${!done})"></div>
-      <div class="tc-body">
-        <div class="tc-top"><div class="tc-name">${escapeHtml(b.name)}</div>${priorityTag}</div>
-        <div class="tc-meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${missedPref}</div>
-        ${!done ? `<div class="tc-actions"><button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button></div>` : ''}
+    const remainingLabel = b.split ? ` &middot; ${taskTimeRemaining(tasks.find(t => t.id === b.id) || b)}m left of ${b.duration}m` : '';
+    return `<div class="tl-item" style="animation-delay:${i * 30}ms">
+      <div class="tl-time">${formatMinutes(b.start)}</div>
+      <div class="tl-line"><div class="tl-dot task"></div></div>
+      <div class="tl-block task-block${done ? ' done' : ''}${missed ? ' past' : ''}${b.priority === 'high' && !done ? ' priority-high' : ''}">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <div class="check-circle${done ? ' checked' : ''}" onclick="setInstanceComplete(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${!done})"></div>
+          <div style="flex:1; min-width:0;">
+            <div class="tc-top"><div class="name">${escapeHtml(b.name)}</div>${priorityTag}${categoryTag}</div>
+            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${missedPref}${remainingLabel}${missed ? ' &middot; <span class="missed-tag">missed</span>' : ''}</div>
+            ${b.notes ? `<div class="notes-preview">${escapeHtml(b.notes)}</div>` : ''}
+            ${renderSubtaskChecklist(b, true)}
+            ${!done ? `<div class="tc-actions"><button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button></div>` : ''}
+          </div>
+        </div>
       </div>
+    </div>`;
+  }
+
+  // ---- "What should I do right now?" — recommends the most urgent task that fits
+  // the free time between now and the next fixed event (or bedtime), falling back to
+  // the single most urgent task if nothing actually fits that window.
+  let whatNowPool = [];
+  let whatNowIndex = 0;
+
+  function computeWhatToDoNow() {
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const dayEvents = events.filter(e => e.offset === 0).sort((a, b) => a.start - b.start);
+    const nextEvent = dayEvents.find(e => e.start > nowMins);
+    let availableMinutes, untilLabel;
+    if (nextEvent) {
+      availableMinutes = nextEvent.start - nowMins;
+      untilLabel = `before "${nextEvent.name}"`;
+    } else if (nowMins < bed) {
+      availableMinutes = bed - nowMins;
+      untilLabel = 'before bed';
+    } else {
+      availableMinutes = 120;
+      untilLabel = '';
+    }
+
+    const todayKey = WEEK_DAYS[0].dateKey;
+    const allUnits = tasks.flatMap(expandTask);
+    // Only today's occurrence of a recurring task is relevant to "right now".
+    const relevant = allUnits.filter(u => u.recurring ? u.forceOffset === 0 : true);
+    const incomplete = relevant.filter(u => !isInstanceComplete(u, todayKey, u.sessionIndex));
+    const fitting = incomplete.filter(u => u.unitDuration <= availableMinutes);
+    const pool = (fitting.length > 0 ? fitting : incomplete).slice().sort((a, b) =>
+      (a.dueOffset ?? 99) - (b.dueOffset ?? 99)
+      || (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1)
+      || a.unitDuration - b.unitDuration
+    );
+    return { pool, availableMinutes, untilLabel, fits: fitting.length > 0, todayKey };
+  }
+
+  function showWhatNow() {
+    const { pool, availableMinutes, untilLabel, fits, todayKey } = computeWhatToDoNow();
+    whatNowPool = pool;
+    whatNowIndex = 0;
+    renderWhatNowResult(availableMinutes, untilLabel, fits, todayKey);
+  }
+
+  function nextWhatNowSuggestion() {
+    if (whatNowPool.length === 0) return;
+    whatNowIndex = (whatNowIndex + 1) % whatNowPool.length;
+    const { availableMinutes, untilLabel, fits, todayKey } = computeWhatToDoNow();
+    renderWhatNowResult(availableMinutes, untilLabel, fits, todayKey);
+  }
+
+  function renderWhatNowResult(availableMinutes, untilLabel, fits, todayKey) {
+    const wrap = document.getElementById('whatNowResult');
+    if (!wrap) return;
+    if (whatNowPool.length === 0) {
+      wrap.innerHTML = `<div class="empty">Nothing left on your list right now — nice work!</div>`;
+      return;
+    }
+    const chosen = whatNowPool[whatNowIndex];
+    const fitNote = fits
+      ? `You have ${minutesUntilLabel(availableMinutes)} available${untilLabel ? ' ' + untilLabel : ''}.`
+      : `Nothing fits your ${minutesUntilLabel(availableMinutes)} window${untilLabel ? ' ' + untilLabel : ''} exactly, but this is the most urgent thing on your list.`;
+    const again = whatNowPool.length > 1
+      ? `<button class="focus-cancel" style="margin-top:10px;" onclick="nextWhatNowSuggestion()">Try another suggestion</button>` : '';
+    wrap.innerHTML = `<div class="next-up-card now">
+      <div class="nu-label">SUGGESTED</div>
+      <div class="nu-name">${escapeHtml(chosen.unitName)}</div>
+      <div class="nu-meta">${fitNote}</div>
+      <button class="start-btn" onclick="startFocus(${chosen.id}, '${todayKey}', ${chosen.sessionIndex ?? 'null'}, ${chosen.unitDuration})">&#9654; Start Task</button>
+      ${again}
     </div>`;
   }
 
@@ -2034,8 +2308,10 @@
     if (!container) return;
     selectedMinutesFilter = null;
 
-    const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-    const greeting = `<div class="dash-greeting"><div class="h1">${greetingWord()}</div><div class="sub">${dateStr}</div></div>`;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    const greeting = `<div class="dash-greeting"><div class="h1">${greetingWord()}</div><div class="sub">${dateStr} &middot; <span class="live-clock" id="liveClockSpan">${formatMinutes(nowMins)}</span></div></div>`;
 
     if (events.length === 0 && tasks.length === 0) {
       container.innerHTML = greeting + `<div class="dash-empty">
@@ -2050,8 +2326,6 @@
     const dateKey = today.dateKey;
     const { total, done } = computeTodayProgress(blocks, dateKey);
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
     const next = computeNextUp(blocks, dateKey, nowMins);
 
     let html = greeting;
@@ -2066,6 +2340,12 @@
     html += renderNextUpCard(next, dateKey, nowMins);
 
     html += `<div class="minutes-card">
+      <div class="mc-title">What should I do right now?</div>
+      <button type="button" class="whatnow-btn" onclick="showWhatNow()">Find something to work on</button>
+      <div id="whatNowResult" style="margin-top:10px;"></div>
+    </div>`;
+
+    html += `<div class="minutes-card">
       <div class="mc-title">I have a few minutes free</div>
       <div class="chip-row" id="minutesChips">
         ${[10, 15, 20, 30, 45, 60].map(m => `<button type="button" class="chip" onclick="findMinutesSuggestions(${m}, this)">${m < 60 ? m + 'm' : '1h'}</button>`).join('')}
@@ -2077,19 +2357,40 @@
       html += `<div class="day-warn">⚠ Conflict: ${schedule.dayConflicts[0].join('; ')}.</div>`;
     }
 
+    const remainingBlocks = blocks.filter(b => b.type === 'fixed' || !isInstanceComplete(b, dateKey, b.sessionIndex));
+    const completedBlocks = blocks.filter(b => b.type === 'task' && isInstanceComplete(b, dateKey, b.sessionIndex));
+
     html += `<div class="day-plan-title">Today's plan</div>`;
     if (blocks.length === 0) {
       html += `<div class="empty">Nothing scheduled for today — add a task or event, then check Plan &rarr; Build my week.</div>`;
+    } else if (remainingBlocks.length === 0) {
+      html += `<div class="empty">Nothing left on today's plan. Nice work!</div>`;
     } else {
-      blocks.forEach((b, i) => { html += renderDashboardBlock(b, dateKey, i); });
+      let markerPlaced = false;
+      const nowMarker = `<div class="now-line"><div class="bar"></div><div class="lbl">NOW &middot; ${formatMinutes(nowMins)}</div><div class="bar"></div></div>`;
+      remainingBlocks.forEach((b, i) => {
+        if (!markerPlaced && b.start > nowMins) { html += nowMarker; markerPlaced = true; }
+        html += renderDashboardBlock(b, dateKey, i, nowMins);
+      });
+      if (!markerPlaced) html += nowMarker;
     }
 
     if (schedule.unplacedTasks && schedule.unplacedTasks.length > 0) {
       html += `<div class="leftover">Couldn't fit: ${escapeHtml(schedule.unplacedTasks.join(', '))}. Check Plan for details.</div>`;
     }
 
+    if (completedBlocks.length > 0) {
+      html += `<div class="section-subtitle">Completed today (${completedBlocks.length})</div>`;
+      completedBlocks.forEach((b, i) => { html += renderDashboardBlock(b, dateKey, i, nowMins); });
+    }
+
     container.innerHTML = html;
   }
+
+  // Keep Today's clock, "now" marker, and next-up state fresh without the user having to
+  // touch anything. A full re-render (rather than just patching the clock text) is cheap here
+  // and keeps everything — next up, the now-marker position, missed-task flags — in sync.
+  setInterval(() => { if (mainView === 'today' && !focusState) renderTodayDashboard(); }, 60000);
 
   // ==================== FOCUS TIMER ====================
   let focusState = null;
