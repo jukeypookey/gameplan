@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Game Plan">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16241c">
+<title>Game Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --board: #16241c;
+    --board-light: #1e3327;
+    --card: #203827;
+    --line: #33503d;
+    --chalk: #eeeee2;
+    --chalk-dim: #a9bcae;
+    --gold: #e8b93f;
+    --gold-dim: #8a7333;
+    --red: #e2604f;
+    --teal: #5aa88f;
+    --sleep: #6a7fb0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--board);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,0.03), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(255,255,255,0.02), transparent 40%);
+    color: var(--chalk);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .wrap {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 22px 18px 10px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 14px;
+  }
+
+  header .brand {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  header .brand span { color: var(--gold); }
+
+  header .date {
+    font-size: 12px;
+    color: var(--chalk-dim);
+    text-align: right;
+    line-height: 1.4;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    line-height: 1;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .menu-btn .menu-icon { font-size: 16px; }
+  .menu-btn .menu-label {
+    font-size: 8.5px;
+    letter-spacing: 0.4px;
+    color: var(--chalk-dim);
+    text-transform: uppercase;
+  }
+  .menu-btn:active { transform: scale(0.96); }
+
+  .sleep-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--sleep);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .sleep-row { display: flex; align-items: center; gap: 8px; }
+  .sleep-row .label { flex: 0 0 36px; color: var(--chalk-dim); font-size: 12px; }
+  .sleep-row .timepick { flex: 1; min-width: 0; }
+  .sleep-bar input {
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 6px 7px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .sleep-note { font-size: 11px; color: var(--chalk-dim); margin: -10px 0 16px 2px; }
+  .sleep-note.warn { color: var(--red); }
+
+  /* Sleep times are glanced at constantly, so they get the most readable
+     treatment of any control in the app: bigger, bolder, higher contrast. */
+  .sleep-bar .timepick { gap: 6px; }
+  .sleep-bar .timepick select {
+    padding: 11px 4px;
+    font-size: 17px;
+    font-weight: 700;
+    background: var(--card);
+    border: 1.5px solid var(--gold-dim);
+    color: var(--chalk);
+    border-radius: 7px;
+  }
+  .sleep-bar .timepick select.tp-ampm { flex: 0 0 54px; font-size: 13px; font-weight: 600; }
+
+  @media (max-width: 360px) {
+    .sleep-row .label { flex-basis: 30px; font-size: 11px; }
+    .sleep-bar .timepick select { font-size: 15px; padding: 10px 3px; }
+    .sleep-bar .timepick select.tp-ampm { flex-basis: 46px; font-size: 11px; }
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--chalk-dim);
+    cursor: pointer;
+    background: transparent;
+    transition: all .15s ease;
+  }
+  .tab.active {
+    background: var(--card);
+    color: var(--chalk);
+    border-color: var(--gold-dim);
+  }
+  .tab.active.task { border-color: var(--teal); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--chalk-dim);
+    margin-bottom: 5px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 10px 11px;
+    border-radius: 7px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+  }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+
+  .checkline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--chalk-dim);
+    margin-bottom: 12px;
+  }
+  .checkline input { width: auto; }
+
+  .add-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 11px 0;
+    border-radius: 7px;
+    border: none;
+    background: var(--gold);
+    color: #1a1508;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+  }
+  .add-btn.task { background: var(--teal); color: #0b1c15; }
+  .add-btn:active { transform: scale(0.98); }
+
+  .list-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--chalk-dim);
+    margin: 22px 0 10px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--gold);
+    border-radius: 8px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .item.task { border-left-color: var(--teal); }
+  .item .info .t { font-weight: 600; }
+  .item .info .d { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
+  .item .remove {
+    background: none;
+    border: none;
+    color: var(--chalk-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .chip {
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--board-light);
+    color: var(--chalk-dim);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .chip.active { background: var(--teal); border-color: var(--teal); color: #0b1c15; font-weight: 600; }
+  .chip.active.gold { background: var(--gold); border-color: var(--gold); }
+
+  .edit-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(232,185,63,0.12);
+    border: 1px solid var(--gold-dim);
+    border-radius: 7px;
+    padding: 8px 11px;
+    font-size: 12.5px;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .edit-banner a { color: var(--chalk); text-decoration: underline; cursor: pointer; }
+
+  .empty {
+    font-size: 13px;
+    color: var(--chalk-dim);
+    padding: 8px 2px 4px;
+  }
+
+  .build-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px 0;
+    border-radius: 10px;
+    border: 2px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .build-btn:active { transform: scale(0.98); }
+
+  .day-section { margin-top: 26px; }
+  .day-heading {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .day-heading .sub { font-size: 11px; color: var(--chalk-dim); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  .tl-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 2px;
+  }
+  .tl-time {
+    width: 60px;
+    flex-shrink: 0;
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    color: var(--chalk-dim);
+    padding-top: 12px;
+    text-align: right;
+  }
+  .tl-line {
+    width: 2px;
+    background: var(--line);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .tl-dot {
+    position: absolute;
+    left: -3px;
+    top: 14px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .tl-dot.task { background: var(--teal); }
+  .tl-dot.sleep { background: var(--sleep); }
+  .tl-block {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .tl-block.fixed { border-left: 3px solid var(--gold); }
+  .tl-block.task-block { border-left: 3px solid var(--teal); }
+  .tl-block.sleep-block { border-left: 3px solid var(--sleep); opacity: 0.85; }
+  .tl-block .name { font-weight: 600; font-size: 14px; }
+  .tl-block .meta { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
+
+  .leftover {
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(226,96,79,0.12);
+    border: 1px solid rgba(226,96,79,0.4);
+    font-size: 13px;
+    color: #f0b7ae;
+  }
+
+  .day-warn {
+    margin-bottom: 10px;
+    padding: 9px 11px;
+    border-radius: 7px;
+    background: rgba(226,96,79,0.12);
+    border: 1px solid rgba(226,96,79,0.4);
+    font-size: 12.5px;
+    color: #f0b7ae;
+  }
+
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--gold-dim);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }
+  .s-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .summary-card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .summary-card li.warn { color: #f0b7ae; }
+
+  .hidden { display: none; }
+
+  #settingsPanel {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  #settingsPanel.open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .timepick { display: flex; gap: 6px; }
+  .timepick select {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    padding: 6px 4px;
+    text-align: center;
+    background: var(--board-light);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .timepick select.tp-ampm { flex: 0 0 52px; }
+  .field .timepick select { padding: 10px 4px; font-size: 15px; }
+
+  :root[data-theme="light"] {
+    --board: #f4f1e6;
+    --board-light: #ffffff;
+    --card: #ffffff;
+    --line: #d9d3bf;
+    --chalk: #1c2620;
+    --chalk-dim: #5c6b60;
+    --gold: #a8790f;
+    --gold-dim: #8a6d1f;
+    --red: #c0392b;
+    --teal: #2f7d64;
+    --sleep: #3d5a99;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Game<span>Plan</span></div>
+    <div class="header-right">
+      <div class="date" id="todayLabel"></div>
+      <button class="menu-btn" id="menuBtn" onclick="toggleSettingsMenu()" aria-label="Settings menu">
+        <span class="menu-icon">&#9776;</span>
+        <span class="menu-label">Settings</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="card hidden" id="settingsPanel">
+    <div class="s-title">Settings</div>
+    <div class="field">
+      <label>Time steps</label>
+      <select id="minuteStepSetting">
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+        <option value="15" selected>15 min</option>
+        <option value="30">30 min</option>
+        <option value="60">60 min</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Theme</label>
+      <select id="themeSetting">
+        <option value="dark" selected>Dark</option>
+        <option value="light">Light</option>
+        <option value="auto">Auto (matches your wake/sleep hours)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sleep-bar">
+    <div class="sleep-row">
+      <div class="label">Wake</div>
+      <div class="timepick" data-target="wakeTime">
+        <select class="tp-hour"></select>
+        <select class="tp-min"></select>
+        <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+      </div>
+    </div>
+    <div class="sleep-row">
+      <div class="label">Bed</div>
+      <div class="timepick" data-target="bedTime">
+        <select class="tp-hour"></select>
+        <select class="tp-min"></select>
+        <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+      </div>
+    </div>
+    <input type="time" id="wakeTime" value="06:30" class="hidden">
+    <input type="time" id="bedTime" value="22:30" class="hidden">
+  </div>
+  <div class="sleep-note" id="sleepNote"></div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabEvent" onclick="switchTab('event')">Class / event</div>
+    <div class="tab task" id="tabTask" onclick="switchTab('task')">Task</div>
+  </div>
+
+  <!-- Fixed event form -->
+  <div class="card" id="eventForm">
+    <div class="edit-banner hidden" id="evEditBanner">Editing event <a onclick="cancelEdit();return false;" href="#">Cancel</a></div>
+    <div class="field">
+      <label>What is it</label>
+      <input type="text" id="evName" placeholder="Practice, game, class period...">
+    </div>
+    <div class="field" id="evDayField">
+      <label>Day</label>
+      <select id="evDay"></select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Starts</label>
+        <div class="timepick" data-target="evStart">
+          <select class="tp-hour"></select>
+          <select class="tp-min"></select>
+          <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+        </div>
+        <input type="time" id="evStart" value="16:00" class="hidden">
+      </div>
+      <div class="field">
+        <label>Ends</label>
+        <div class="timepick" data-target="evEnd">
+          <select class="tp-hour"></select>
+          <select class="tp-min"></select>
+          <select class="tp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+        </div>
+        <input type="time" id="evEnd" value="18:00" class="hidden">
+      </div>
+    </div>
+    <div id="evRepeatSection">
+      <div class="checkline">
+        <input type="checkbox" id="evRepeatToggle" onchange="toggleEventRepeatUI(this.checked)">
+        <label for="evRepeatToggle">Repeats on specific days this week</label>
+      </div>
+      <div class="field hidden" id="evRepeatDaysField">
+        <label>Repeats on</label>
+        <div class="chip-row" id="evRepeatDayChips">
+          <button type="button" class="chip" data-dow="1">Mon</button>
+          <button type="button" class="chip" data-dow="2">Tue</button>
+          <button type="button" class="chip" data-dow="3">Wed</button>
+          <button type="button" class="chip" data-dow="4">Thu</button>
+          <button type="button" class="chip" data-dow="5">Fri</button>
+          <button type="button" class="chip" data-dow="6">Sat</button>
+          <button type="button" class="chip" data-dow="0">Sun</button>
+        </div>
+      </div>
+    </div>
+    <button class="add-btn" id="evAddBtn" onclick="addEvent()">Add to schedule</button>
+  </div>
+
+  <!-- Task form -->
+  <div class="card hidden" id="taskForm">
+    <div class="edit-banner hidden" id="tkEditBanner">Editing task <a onclick="cancelEdit();return false;" href="#">Cancel</a></div>
+    <div class="field">
+      <label>What needs doing</label>
+      <input type="text" id="tkName" placeholder="Study for chem test, math homework...">
+    </div>
+    <div class="field">
+      <label>Time needed</label>
+      <div class="chip-row" id="durationChips">
+        <button type="button" class="chip" data-val="15">15m</button>
+        <button type="button" class="chip" data-val="20">20m</button>
+        <button type="button" class="chip active" data-val="30">30m</button>
+        <button type="button" class="chip" data-val="45">45m</button>
+        <button type="button" class="chip" data-val="60">1h</button>
+        <button type="button" class="chip" data-val="90">1.5h</button>
+        <button type="button" class="chip" data-val="120">2h</button>
+      </div>
+      <select id="tkDuration" class="hidden">
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">1 hour</option>
+        <option value="90">1.5 hours</option>
+        <option value="120">2 hours</option>
+      </select>
+    </div>
+    <div class="field" id="dueField">
+      <label>Due</label>
+      <select id="tkDue"></select>
+    </div>
+    <div class="field">
+      <label>Preferred time</label>
+      <select id="tkPref">
+        <option value="any">No preference</option>
+        <option value="morning">Morning</option>
+        <option value="afternoon">Afternoon</option>
+        <option value="evening">Evening</option>
+      </select>
+    </div>
+    <div class="checkline" id="splitLine">
+      <input type="checkbox" id="tkSplit" onchange="document.getElementById('sessionLenField').classList.toggle('hidden', !this.checked)">
+      <label for="tkSplit">Split into shorter study sessions leading up to the due day</label>
+    </div>
+    <div class="field hidden" id="sessionLenField">
+      <label>Session length</label>
+      <select id="tkSessionLen">
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="45">45 min</option>
+      </select>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="tkRecurring" onchange="toggleRecurringUI(this.checked)">
+      <label for="tkRecurring">Repeats weekly on specific days (e.g. study Spanish every Mon/Wed)</label>
+    </div>
+    <div class="field hidden" id="recurDaysField">
+      <label>Repeats on</label>
+      <div class="chip-row" id="recurDayChips">
+        <button type="button" class="chip" data-dow="0">Sun</button>
+        <button type="button" class="chip" data-dow="1">Mon</button>
+        <button type="button" class="chip" data-dow="2">Tue</button>
+        <button type="button" class="chip" data-dow="3">Wed</button>
+        <button type="button" class="chip" data-dow="4">Thu</button>
+        <button type="button" class="chip" data-dow="5">Fri</button>
+        <button type="button" class="chip" data-dow="6">Sat</button>
+      </div>
+    </div>
+    <button class="add-btn task" id="tkAddBtn" onclick="addTask()">Add to list</button>
+  </div>
+
+  <div class="list-title">On the board</div>
+  <div id="itemList">
+    <div class="empty">Nothing added yet — start with classes and practices, then add tasks with a due day.</div>
+  </div>
+
+  <button class="build-btn" onclick="buildWeek()">Build my week</button>
+
+  <div class="tabs hidden" id="viewTabs" style="margin-top:16px;">
+    <div class="tab active" id="viewWeek" onclick="setViewMode('week')">Full week</div>
+    <div class="tab task" id="viewToday" onclick="setViewMode('today')">Today</div>
+  </div>
+
+  <div id="timelineWrap"></div>
+</div>
+
+<script>
+  let events = [];   // {id, name, offset, start, end}
+  let tasks = [];    // {id, name, duration, dueOffset, recurring, recurDays}
+  let idCounter = 1;
+  let editingEventId = null;
+  let editingTaskId = null;
+  let tkRecurDays = new Set();
+  let evRepeatDays = new Set();
+  let viewMode = 'week';
+  let lastScheduleData = null;
+  let theme = 'dark';
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  const WEEKDAY_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  function getWeekDays() {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push({
+        offset: i,
+        dow: d.getDay(),
+        label: i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : WEEKDAY_LONG[d.getDay()]),
+        dateStr: `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+      });
+    }
+    return days;
+  }
+
+  const WEEK_DAYS = getWeekDays();
+
+  function populateDaySelects() {
+    const evSel = document.getElementById('evDay');
+    const tkSel = document.getElementById('tkDue');
+    WEEK_DAYS.forEach(d => {
+      const opt1 = document.createElement('option');
+      opt1.value = d.offset;
+      opt1.textContent = `${d.label} (${d.dateStr})`;
+      evSel.appendChild(opt1);
+      const opt2 = opt1.cloneNode(true);
+      tkSel.appendChild(opt2);
+    });
+  }
+
+  const STORAGE_KEY = 'gameplan_data_v1';
+  let minuteStep = 15;
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        events, tasks, idCounter, minuteStep, theme,
+        wakeTime: document.getElementById('wakeTime').value,
+        bedTime: document.getElementById('bedTime').value
+      }));
+    } catch (e) { /* storage not available (e.g. private browsing) — fail silently */ }
+  }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        events = data.events || [];
+        tasks = data.tasks || [];
+        // migrate: older saves predate recurring tasks
+        tasks.forEach(t => {
+          if (t.recurring === undefined) t.recurring = false;
+          if (t.recurDays === undefined) t.recurDays = null;
+        });
+        idCounter = data.idCounter || 1;
+        if (data.minuteStep) minuteStep = data.minuteStep;
+        // theme defaults to 'dark' for saves made before the theme option existed
+        theme = data.theme || 'dark';
+        if (data.wakeTime) document.getElementById('wakeTime').value = data.wakeTime;
+        if (data.bedTime) document.getElementById('bedTime').value = data.bedTime;
+      }
+    } catch (e) { /* no saved data yet, or storage not available */ }
+    document.getElementById('minuteStepSetting').value = String(minuteStep);
+    document.getElementById('themeSetting').value = theme;
+    applyTheme();
+    buildAllTimePickers();
+    renderList();
+    updateSleepNote();
+  }
+
+  // ---- Custom time pickers ----
+  // Mobile Safari ignores the native "step" attribute on <input type="time">
+  // (unresolved WebKit bug), so the picker always shows every minute. These
+  // dropdowns replace that native picker; the original <input type="time">
+  // stays in the DOM (hidden) as the source of truth so nothing downstream
+  // that reads its .value has to change.
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function to24(hour12, minute, ampm) {
+    let h = hour12 % 12;
+    if (ampm === 'PM') h += 12;
+    return pad2(h) + ':' + pad2(minute);
+  }
+
+  function from24(value) {
+    const [hh, mm] = value.split(':').map(Number);
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    let h12 = hh % 12;
+    if (h12 === 0) h12 = 12;
+    return { hour: h12, minute: mm, ampm };
+  }
+
+  function minsToHHMM(mins) {
+    return pad2(Math.floor(mins / 60)) + ':' + pad2(mins % 60);
+  }
+
+  function populateTimePicker(wrap) {
+    const hourSel = wrap.querySelector('.tp-hour');
+    const minSel = wrap.querySelector('.tp-min');
+    hourSel.innerHTML = '';
+    for (let h = 1; h <= 12; h++) {
+      const opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      hourSel.appendChild(opt);
+    }
+    minSel.innerHTML = '';
+    for (let m = 0; m < 60; m += minuteStep) {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = pad2(m);
+      minSel.appendChild(opt);
+    }
+  }
+
+  function syncPickerFromHidden(id) {
+    const hidden = document.getElementById(id);
+    const wrap = document.querySelector('.timepick[data-target="' + id + '"]');
+    if (!hidden || !wrap || !hidden.value) return;
+    const { hour, minute, ampm } = from24(hidden.value);
+    const nearestMin = Math.round(minute / minuteStep) * minuteStep % 60;
+    wrap.querySelector('.tp-hour').value = hour;
+    wrap.querySelector('.tp-min').value = nearestMin;
+    wrap.querySelector('.tp-ampm').value = ampm;
+  }
+
+  function wireTimePicker(id, onChangeExtra) {
+    const hidden = document.getElementById(id);
+    const wrap = document.querySelector('.timepick[data-target="' + id + '"]');
+    if (!hidden || !wrap) return;
+    populateTimePicker(wrap);
+    syncPickerFromHidden(id);
+    const update = () => {
+      const h = parseInt(wrap.querySelector('.tp-hour').value, 10);
+      const m = parseInt(wrap.querySelector('.tp-min').value, 10);
+      const ap = wrap.querySelector('.tp-ampm').value;
+      hidden.value = to24(h, m, ap);
+      if (onChangeExtra) onChangeExtra();
+    };
+    wrap.querySelectorAll('select').forEach(sel => sel.addEventListener('change', update));
+  }
+
+  function buildAllTimePickers() {
+    wireTimePicker('wakeTime', () => { updateSleepNote(); saveData(); });
+    wireTimePicker('bedTime', () => { updateSleepNote(); saveData(); });
+    wireTimePicker('evStart');
+    wireTimePicker('evEnd');
+  }
+
+  document.getElementById('minuteStepSetting').addEventListener('change', (e) => {
+    minuteStep = parseInt(e.target.value, 10);
+    buildAllTimePickers();
+    saveData();
+  });
+
+  // ---- Quick duration chips (fast entry for adding several tasks in a row) ----
+  function highlightDurationChip(val) {
+    document.querySelectorAll('#durationChips .chip').forEach(c => {
+      c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
+    });
+  }
+
+  function wireDurationChips() {
+    const sel = document.getElementById('tkDuration');
+    document.querySelectorAll('#durationChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        sel.value = c.dataset.val;
+        highlightDurationChip(parseInt(c.dataset.val, 10));
+      });
+    });
+  }
+  wireDurationChips();
+
+  // ---- Recurring task day-of-week chips ----
+  function renderRecurDayChips() {
+    document.querySelectorAll('#recurDayChips .chip').forEach(c => {
+      c.classList.toggle('active', tkRecurDays.has(parseInt(c.dataset.dow, 10)));
+    });
+  }
+
+  function wireRecurDayChips() {
+    document.querySelectorAll('#recurDayChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        const dow = parseInt(c.dataset.dow, 10);
+        if (tkRecurDays.has(dow)) tkRecurDays.delete(dow); else tkRecurDays.add(dow);
+        renderRecurDayChips();
+      });
+    });
+  }
+  wireRecurDayChips();
+
+  function toggleRecurringUI(isRecurring) {
+    document.getElementById('dueField').classList.toggle('hidden', isRecurring);
+    document.getElementById('recurDaysField').classList.toggle('hidden', !isRecurring);
+    document.getElementById('splitLine').classList.toggle('hidden', isRecurring);
+    if (isRecurring) {
+      document.getElementById('tkSplit').checked = false;
+      document.getElementById('sessionLenField').classList.add('hidden');
+    }
+  }
+
+  // ---- Custom weekday selection for repeating events (e.g. a class on Tue/Thu) ----
+  function renderEventRepeatDayChips() {
+    document.querySelectorAll('#evRepeatDayChips .chip').forEach(c => {
+      c.classList.toggle('active', evRepeatDays.has(parseInt(c.dataset.dow, 10)));
+    });
+  }
+
+  function wireEventRepeatDayChips() {
+    document.querySelectorAll('#evRepeatDayChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        const dow = parseInt(c.dataset.dow, 10);
+        if (evRepeatDays.has(dow)) evRepeatDays.delete(dow); else evRepeatDays.add(dow);
+        renderEventRepeatDayChips();
+      });
+    });
+  }
+  wireEventRepeatDayChips();
+
+  function toggleEventRepeatUI(isRepeating) {
+    document.getElementById('evDayField').classList.toggle('hidden', isRepeating);
+    document.getElementById('evRepeatDaysField').classList.toggle('hidden', !isRepeating);
+  }
+
+  // ---- Settings menu (time steps + theme) ----
+  let settingsMenuOpen = false;
+  let settingsMenuCloseTimer = null;
+
+  function toggleSettingsMenu() {
+    if (settingsMenuOpen) { closeSettingsMenu(); return; }
+    const panel = document.getElementById('settingsPanel');
+    if (settingsMenuCloseTimer) { clearTimeout(settingsMenuCloseTimer); settingsMenuCloseTimer = null; }
+    panel.classList.remove('hidden');
+    void panel.offsetHeight; // force layout so the fade/slide-in actually transitions from the closed state
+    panel.classList.add('open');
+    settingsMenuOpen = true;
+  }
+
+  function closeSettingsMenu() {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.remove('open');
+    settingsMenuOpen = false;
+    settingsMenuCloseTimer = setTimeout(() => {
+      panel.classList.add('hidden');
+      settingsMenuCloseTimer = null;
+    }, 200);
+  }
+
+  function computeAutoTheme() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    if (wake < bed) return (nowMins >= wake && nowMins < bed) ? 'light' : 'dark';
+    return (nowMins >= wake || nowMins < bed) ? 'light' : 'dark';
+  }
+
+  function applyTheme() {
+    const effective = theme === 'auto' ? computeAutoTheme() : theme;
+    document.documentElement.setAttribute('data-theme', effective === 'light' ? 'light' : 'dark');
+  }
+
+  document.getElementById('themeSetting').addEventListener('change', (e) => {
+    theme = e.target.value;
+    applyTheme();
+    saveData();
+  });
+
+  // Re-check every 5 minutes so Auto mode actually switches while the app stays open
+  setInterval(() => { if (theme === 'auto') applyTheme(); }, 5 * 60 * 1000);
+
+  // ---- Fast entry: Enter submits, focus returns to the name field ----
+  document.getElementById('tkName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+  });
+  document.getElementById('evName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addEvent(); }
+  });
+
+  function toMinutes(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function formatMinutes(mins) {
+    let h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  function updateSleepNote() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const sleepMins = (24 * 60 - bed) + wake;
+    const hrs = (sleepMins / 60).toFixed(1);
+    const note = document.getElementById('sleepNote');
+    if (sleepMins < 480) {
+      note.textContent = `That's only ${hrs}h of sleep — under 8 hours. Consider an earlier bedtime or later wake time.`;
+      note.classList.add('warn');
+    } else {
+      note.textContent = `${hrs}h of sleep protected each night. Nothing gets scheduled during that window.`;
+      note.classList.remove('warn');
+    }
+  }
+
+  function switchTab(which) {
+    document.getElementById('tabEvent').classList.toggle('active', which === 'event');
+    document.getElementById('tabTask').classList.toggle('active', which === 'task');
+    document.getElementById('eventForm').classList.toggle('hidden', which !== 'event');
+    document.getElementById('taskForm').classList.toggle('hidden', which !== 'task');
+  }
+
+  function addEvent() {
+    const name = document.getElementById('evName').value.trim();
+    const offset = parseInt(document.getElementById('evDay').value, 10);
+    const start = document.getElementById('evStart').value;
+    const end = document.getElementById('evEnd').value;
+    const repeating = document.getElementById('evRepeatToggle').checked;
+    if (!name || !start || !end) return;
+    const s = toMinutes(start), e = toMinutes(end);
+    if (e <= s) { alert('End time needs to be after start time.'); return; }
+
+    if (editingEventId !== null) {
+      const idx = events.findIndex(x => x.id === editingEventId);
+      if (idx !== -1) events[idx] = { ...events[idx], name, offset, start: s, end: e };
+      cancelEdit();
+    } else if (repeating) {
+      if (evRepeatDays.size === 0) { alert('Pick at least one day for this to repeat on.'); return; }
+      WEEK_DAYS.forEach(d => {
+        if (evRepeatDays.has(d.dow)) {
+          events.push({ id: idCounter++, name, offset: d.offset, start: s, end: e });
+        }
+      });
+    } else {
+      events.push({ id: idCounter++, name, offset, start: s, end: e });
+    }
+    document.getElementById('evName').value = '';
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    renderList();
+    saveData();
+    document.getElementById('evName').focus();
+  }
+
+  const PREF_LABEL = { any: 'No preference', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
+  const PREF_BAND = {
+    morning: { start: 0, end: 12 * 60 },
+    afternoon: { start: 12 * 60, end: 17 * 60 },
+    evening: { start: 17 * 60, end: 24 * 60 }
+  };
+
+  function addTask() {
+    const name = document.getElementById('tkName').value.trim();
+    const duration = parseInt(document.getElementById('tkDuration').value, 10);
+    const pref = document.getElementById('tkPref').value;
+    const recurring = document.getElementById('tkRecurring').checked;
+    if (!name) return;
+
+    let taskData;
+    if (recurring) {
+      if (tkRecurDays.size === 0) { alert('Pick at least one day for this task to repeat on.'); return; }
+      taskData = { name, duration, pref, recurring: true, recurDays: [...tkRecurDays], dueOffset: null, split: false, sessionLen: null };
+    } else {
+      const dueOffset = parseInt(document.getElementById('tkDue').value, 10);
+      const split = document.getElementById('tkSplit').checked;
+      const sessionLen = parseInt(document.getElementById('tkSessionLen').value, 10);
+      taskData = { name, duration, dueOffset, pref, split, sessionLen, recurring: false, recurDays: null };
+    }
+
+    if (editingTaskId !== null) {
+      const idx = tasks.findIndex(x => x.id === editingTaskId);
+      if (idx !== -1) tasks[idx] = { id: tasks[idx].id, ...taskData };
+      cancelEdit();
+    } else {
+      tasks.push({ id: idCounter++, ...taskData });
+    }
+
+    document.getElementById('tkName').value = '';
+    document.getElementById('tkSplit').checked = false;
+    document.getElementById('sessionLenField').classList.add('hidden');
+    renderList();
+    saveData();
+    document.getElementById('tkName').focus();
+  }
+
+  function removeItem(id, type) {
+    if (type === 'event') events = events.filter(x => x.id !== id);
+    else tasks = tasks.filter(x => x.id !== id);
+    if (editingEventId === id || editingTaskId === id) cancelEdit();
+    renderList();
+    saveData();
+  }
+
+  function dayLabelFor(offset) {
+    if (offset === null || offset === undefined) return '';
+    const d = WEEK_DAYS.find(x => x.offset === offset);
+    return d ? `${d.label} (${d.dateStr})` : '';
+  }
+
+  const DOW_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function recurDaysLabel(days) {
+    return [...(days || [])].sort((a, b) => a - b).map(d => DOW_ABBR[d]).join('/');
+  }
+
+  // ---- Editing existing items ----
+  function setFormEditMode(type, isEditing) {
+    if (type === 'event') {
+      document.getElementById('evAddBtn').textContent = isEditing ? 'Save changes' : 'Add to schedule';
+      document.getElementById('evEditBanner').classList.toggle('hidden', !isEditing);
+      document.getElementById('evRepeatSection').classList.toggle('hidden', isEditing);
+    } else {
+      document.getElementById('tkAddBtn').textContent = isEditing ? 'Save changes' : 'Add to list';
+      document.getElementById('tkEditBanner').classList.toggle('hidden', !isEditing);
+    }
+  }
+
+  function editEvent(id) {
+    const ev = events.find(x => x.id === id);
+    if (!ev) return;
+    editingTaskId = null;
+    editingEventId = id;
+    switchTab('event');
+    document.getElementById('evName').value = ev.name;
+    document.getElementById('evDay').value = ev.offset;
+    document.getElementById('evStart').value = minsToHHMM(ev.start);
+    document.getElementById('evEnd').value = minsToHHMM(ev.end);
+    syncPickerFromHidden('evStart');
+    syncPickerFromHidden('evEnd');
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    setFormEditMode('task', false);
+    setFormEditMode('event', true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function editTask(id) {
+    const tk = tasks.find(x => x.id === id);
+    if (!tk) return;
+    editingEventId = null;
+    editingTaskId = id;
+    switchTab('task');
+    document.getElementById('tkName').value = tk.name;
+    document.getElementById('tkDuration').value = String(tk.duration);
+    highlightDurationChip(tk.duration);
+    document.getElementById('tkPref').value = tk.pref;
+    document.getElementById('tkRecurring').checked = !!tk.recurring;
+    toggleRecurringUI(!!tk.recurring);
+    if (tk.recurring) {
+      tkRecurDays = new Set(tk.recurDays || []);
+      renderRecurDayChips();
+    } else {
+      tkRecurDays = new Set();
+      renderRecurDayChips();
+      document.getElementById('tkDue').value = tk.dueOffset;
+      document.getElementById('tkSplit').checked = !!tk.split;
+      document.getElementById('sessionLenField').classList.toggle('hidden', !tk.split);
+      if (tk.split) document.getElementById('tkSessionLen').value = String(tk.sessionLen);
+    }
+    setFormEditMode('event', false);
+    setFormEditMode('task', true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    editingEventId = null;
+    editingTaskId = null;
+    document.getElementById('evName').value = '';
+    document.getElementById('evRepeatToggle').checked = false;
+    evRepeatDays = new Set();
+    renderEventRepeatDayChips();
+    toggleEventRepeatUI(false);
+    setFormEditMode('event', false);
+    document.getElementById('tkName').value = '';
+    document.getElementById('tkSplit').checked = false;
+    document.getElementById('sessionLenField').classList.add('hidden');
+    document.getElementById('tkRecurring').checked = false;
+    toggleRecurringUI(false);
+    tkRecurDays = new Set();
+    renderRecurDayChips();
+    setFormEditMode('task', false);
+  }
+
+  function renderList() {
+    const wrap = document.getElementById('itemList');
+    if (events.length === 0 && tasks.length === 0) {
+      wrap.innerHTML = '<div class="empty">Nothing added yet — start with classes and practices, then add tasks with a due day.</div>';
+      return;
+    }
+    let html = '';
+    [...events].sort((a, b) => a.offset - b.offset || a.start - b.start).forEach(ev => {
+      html += `<div class="item" onclick="editEvent(${ev.id})" title="Tap to edit">
+        <div class="info"><div class="t">${escapeHtml(ev.name)}</div><div class="d">${dayLabelFor(ev.offset)} &middot; ${formatMinutes(ev.start)} – ${formatMinutes(ev.end)}</div></div>
+        <button class="remove" onclick="event.stopPropagation(); removeItem(${ev.id}, 'event')">&times;</button>
+      </div>`;
+    });
+    [...tasks].sort((a, b) => (a.recurring ? -1 : 0) - (b.recurring ? -1 : 0) || (a.dueOffset ?? 99) - (b.dueOffset ?? 99)).forEach(tk => {
+      const splitNote = tk.split ? ` &middot; split into ${Math.ceil(tk.duration / tk.sessionLen)}x ${tk.sessionLen}-min sessions` : '';
+      const whenNote = tk.recurring ? `Every ${recurDaysLabel(tk.recurDays)}` : `Due ${dayLabelFor(tk.dueOffset)}`;
+      html += `<div class="item task" onclick="editTask(${tk.id})" title="Tap to edit">
+        <div class="info"><div class="t">${escapeHtml(tk.name)}</div><div class="d">${tk.duration} min &middot; ${whenNote} &middot; ${PREF_LABEL[tk.pref]}${splitNote}</div></div>
+        <button class="remove" onclick="event.stopPropagation(); removeItem(${tk.id}, 'task')">&times;</button>
+      </div>`;
+    });
+    wrap.innerHTML = html;
+  }
+
+  function buildWeek() {
+    const wrap = document.getElementById('timelineWrap');
+    if (events.length === 0 && tasks.length === 0) {
+      wrap.innerHTML = '<div class="empty">Add a few classes/events and tasks first, then build your week.</div>';
+      document.getElementById('viewTabs').classList.add('hidden');
+      lastScheduleData = null;
+      return;
+    }
+    lastScheduleData = computeSchedule();
+    document.getElementById('viewTabs').classList.remove('hidden');
+    renderSchedule();
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode;
+    document.getElementById('viewWeek').classList.toggle('active', mode === 'week');
+    document.getElementById('viewToday').classList.toggle('active', mode === 'today');
+    if (lastScheduleData) renderSchedule();
+  }
+
+  // Expand each task into one or more schedulable units:
+  // recurring tasks become one unit per matching weekday, split tasks become one unit per session,
+  // everything else is a single unit.
+  function expandTask(task) {
+    if (task.recurring) {
+      const units = [];
+      WEEK_DAYS.forEach(d => {
+        if (task.recurDays.includes(d.dow)) {
+          units.push({ ...task, unitName: task.name, unitDuration: task.duration, targetOffset: d.offset, forceOffset: d.offset, dueOffset: d.offset });
+        }
+      });
+      return units;
+    }
+    if (!task.split) {
+      return [{ ...task, unitName: task.name, unitDuration: task.duration, targetOffset: null }];
+    }
+    const numSessions = Math.max(1, Math.ceil(task.duration / task.sessionLen));
+    const units = [];
+    for (let i = 0; i < numSessions; i++) {
+      const remaining = task.duration - task.sessionLen * i;
+      const dur = Math.min(task.sessionLen, remaining);
+      const target = Math.min(task.dueOffset, Math.floor((i * (task.dueOffset + 1)) / numSessions));
+      units.push({ ...task, unitName: `${task.name} (session ${i + 1}/${numSessions})`, unitDuration: dur, targetOffset: target });
+    }
+    return units;
+  }
+
+  // Recurring units are pinned to their one matching day; everything else tries its
+  // preferred/target day first, then falls back through earlier days up to the due day.
+  function offsetOrder(unit) {
+    if (unit.forceOffset !== null && unit.forceOffset !== undefined) return [unit.forceOffset];
+    const full = Array.from({ length: unit.dueOffset + 1 }, (_, i) => i);
+    if (unit.targetOffset === null || unit.targetOffset === undefined) return full;
+    return [unit.targetOffset, ...full.filter(o => o !== unit.targetOffset)];
+  }
+
+  function computeSchedule() {
+    const wake = toMinutes(document.getElementById('wakeTime').value);
+    const bed = toMinutes(document.getElementById('bedTime').value);
+    const dayWindow = bed - wake;
+
+    // Per-day working gaps, computed fresh from each day's fixed events
+    const dayGaps = {};
+    const dayConflicts = {};
+    WEEK_DAYS.forEach(d => {
+      const dayEvents = events.filter(e => e.offset === d.offset).sort((a, b) => a.start - b.start);
+      let gaps = [];
+      let cursor = wake;
+      const conflicts = [];
+      dayEvents.forEach(ev => {
+        if (ev.start < cursor) {
+          const prev = dayEvents.find(o => o.end === cursor) || dayEvents[dayEvents.indexOf(ev) - 1];
+          conflicts.push(`"${escapeHtml(ev.name)}" overlaps with "${escapeHtml(prev ? prev.name : 'another event')}"`);
+        }
+        if (ev.start > cursor) gaps.push({ start: cursor, end: ev.start });
+        cursor = Math.max(cursor, ev.end);
+      });
+      if (cursor < bed) gaps.push({ start: cursor, end: bed });
+      dayGaps[d.offset] = gaps;
+      dayConflicts[d.offset] = conflicts;
+    });
+
+    let units = tasks.flatMap(expandTask);
+    // Earliest due first; within that, sessions with an earlier target day first; longer units first as a tiebreak
+    units.sort((a, b) => a.dueOffset - b.dueOffset || (a.targetOffset ?? 0) - (b.targetOffset ?? 0) || b.unitDuration - a.unitDuration);
+
+    // Try to fit `duration` inside a gap, restricted to [windowStart, windowEnd).
+    function tryPlace(gaps, duration, windowStart, windowEnd) {
+      for (let i = 0; i < gaps.length; i++) {
+        const g = gaps[i];
+        const s = Math.max(g.start, windowStart);
+        const e = Math.min(g.end, windowEnd);
+        if (e - s >= duration) {
+          const placeStart = s, placeEnd = s + duration;
+          const remainder = [];
+          if (g.start < placeStart) remainder.push({ start: g.start, end: placeStart });
+          if (placeEnd < g.end) remainder.push({ start: placeEnd, end: g.end });
+          gaps.splice(i, 1, ...remainder);
+          return placeStart;
+        }
+      }
+      return null;
+    }
+
+    const placedByDay = {};
+    WEEK_DAYS.forEach(d => placedByDay[d.offset] = []);
+    let unplacedTasks = [];
+
+    units.forEach(unit => {
+      const band = PREF_BAND[unit.pref];
+      const order = offsetOrder(unit);
+      let result = null;
+
+      if (band) {
+        for (const offset of order) {
+          const gaps = dayGaps[offset];
+          if (!gaps) continue;
+          const start = tryPlace(gaps, unit.unitDuration, band.start, band.end);
+          if (start !== null) { result = { offset, start, matchedPref: true }; break; }
+        }
+      }
+      if (!result) {
+        for (const offset of order) {
+          const gaps = dayGaps[offset];
+          if (!gaps) continue;
+          const start = tryPlace(gaps, unit.unitDuration, 0, 24 * 60);
+          if (start !== null) { result = { offset, start, matchedPref: false }; break; }
+        }
+      }
+
+      if (result) {
+        placedByDay[result.offset].push({ ...unit, name: unit.unitName, start: result.start, end: result.start + unit.unitDuration, matchedPref: result.matchedPref });
+      } else {
+        unplacedTasks.push(unit.unitName);
+      }
+    });
+
+    // Weekly summary stats
+    let totalFree = 0;
+    let busiestDay = null;
+    let overloadedCount = 0;
+    const overloadedDayOffsets = new Set();
+    WEEK_DAYS.forEach(d => {
+      const busy = events.filter(e => e.offset === d.offset).reduce((sum, e) => sum + (e.end - e.start), 0)
+        + placedByDay[d.offset].reduce((sum, t) => sum + (t.end - t.start), 0);
+      const free = Math.max(0, dayWindow - busy);
+      totalFree += free;
+      if (!busiestDay || free < busiestDay.free) busiestDay = { label: d.label, free };
+      if (free < 60) { overloadedCount++; overloadedDayOffsets.add(d.offset); }
+    });
+
+    return { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets };
+  }
+
+  function renderSchedule() {
+    const wrap = document.getElementById('timelineWrap');
+    const data = lastScheduleData;
+    if (!data) return;
+    const { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets } = data;
+    const daysToShow = viewMode === 'today' ? WEEK_DAYS.filter(d => d.offset === 0) : WEEK_DAYS;
+
+    let html = '';
+
+    if (viewMode === 'week') {
+      html += `<div class="summary-card">
+        <div class="s-title">This week at a glance</div>
+        <ul>
+          <li>${(totalFree / 60).toFixed(1)}h free across the week</li>
+          <li${overloadedCount > 0 ? ' class="warn"' : ''}>Busiest day: ${busiestDay.label} (only ${(busiestDay.free / 60).toFixed(1)}h free)</li>
+          ${overloadedCount > 0 ? `<li class="warn">${overloadedCount} day${overloadedCount > 1 ? 's' : ''} packed tight (under 1h free)</li>` : ''}
+          ${unplacedTasks.length > 0 ? `<li class="warn">${unplacedTasks.length} session${unplacedTasks.length > 1 ? 's' : ''} couldn't fit before their due day</li>` : ''}
+        </ul>
+      </div>`;
+    }
+
+    let anythingShown = false;
+
+    daysToShow.forEach(d => {
+      const dayEvents = events.filter(e => e.offset === d.offset).map(e => ({ ...e, type: 'fixed' }));
+      const dayTasks = placedByDay[d.offset].map(t => ({ ...t, type: 'task' }));
+      if (dayEvents.length === 0 && dayTasks.length === 0) return;
+      anythingShown = true;
+
+      const blocks = [...dayEvents, ...dayTasks].sort((a, b) => a.start - b.start);
+
+      html += `<div class="day-section">
+        <div class="day-heading"><span>${escapeHtml(d.label)}</span><span class="sub">${d.dateStr}</span></div>`;
+
+      if (dayConflicts[d.offset].length > 0) {
+        html += `<div class="day-warn">⚠ Conflict: ${dayConflicts[d.offset].join('; ')}.</div>`;
+      }
+      if (overloadedDayOffsets.has(d.offset)) {
+        html += `<div class="day-warn">⚠ Packed day — under an hour free between wake and bed.</div>`;
+      }
+
+      blocks.forEach(b => {
+        const taskMeta = b.recurring ? 'recurring' : ('due ' + dayLabelFor(b.dueOffset));
+        html += `<div class="tl-item">
+          <div class="tl-time">${formatMinutes(b.start)}</div>
+          <div class="tl-line"><div class="tl-dot ${b.type === 'task' ? 'task' : ''}"></div></div>
+          <div class="tl-block ${b.type === 'fixed' ? 'fixed' : 'task-block'}">
+            <div class="name">${escapeHtml(b.name)}</div>
+            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${b.type === 'task' ? ' &middot; ' + taskMeta + (b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '') : ''}</div>
+          </div>
+        </div>`;
+      });
+
+      html += `<div class="tl-item">
+        <div class="tl-time">${formatMinutes(bed)}</div>
+        <div class="tl-line"><div class="tl-dot sleep"></div></div>
+        <div class="tl-block sleep-block">
+          <div class="name">Sleep</div>
+          <div class="meta">${formatMinutes(bed)} – ${formatMinutes(wake)} next day &middot; protected, nothing gets scheduled here</div>
+        </div>
+      </div>`;
+
+      html += `</div>`;
+    });
+
+    if (!anythingShown) {
+      html += viewMode === 'today'
+        ? '<div class="empty">Nothing scheduled for today.</div>'
+        : '<div class="empty">Nothing scheduled this week.</div>';
+    }
+
+    if (viewMode === 'week' && unplacedTasks.length > 0) {
+      html += `<div class="leftover">Couldn't fit: ${escapeHtml(unplacedTasks.join(', '))}. Try freeing up time or moving the due day.</div>`;
+    }
+
+    wrap.innerHTML = html;
+  }
+
+  // These three run last, after every const/function above is defined — loadData()
+  // synchronously calls renderList(), which reads PREF_LABEL/DOW_ABBR etc., so running
+  // this any earlier throws a "Cannot access before initialization" TDZ error for any
+  // returning user who has saved tasks.
+  document.getElementById('todayLabel').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  populateDaySelects();
+  loadData();
+</script>
+</body>
+</html>
