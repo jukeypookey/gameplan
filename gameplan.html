@@ -873,6 +873,16 @@
         <option value="auto">Auto (matches your wake/sleep hours)</option>
       </select>
     </div>
+    <div class="field">
+      <label>Reminders</label>
+      <select id="notifSetting">
+        <option value="0" selected>Off</option>
+        <option value="5">5 min before</option>
+        <option value="10">10 min before</option>
+        <option value="15">15 min before</option>
+      </select>
+    </div>
+    <div class="sleep-note" id="notifNote">Reminders are off.</div>
   </div>
 
   <div class="tabs main-nav">
@@ -1152,6 +1162,7 @@
   let completedLog = {};
   // Manual per-day time overrides from the Reschedule feature, keyed the same way, value {start}.
   let manualSlots = {};
+  let notifLead = 0; // minutes before a task/event starts to fire a reminder; 0 = off
   let idCounter = 1;
   let editingEventId = null;
   let editingTaskId = null;
@@ -1211,7 +1222,7 @@
   function saveData() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        events, tasks, idCounter, minuteStep, theme, completions, completedLog, manualSlots,
+        events, tasks, idCounter, minuteStep, theme, completions, completedLog, manualSlots, notifLead,
         wakeTime: document.getElementById('wakeTime').value,
         bedTime: document.getElementById('bedTime').value
       }));
@@ -1262,12 +1273,18 @@
         if (data.minuteStep) minuteStep = data.minuteStep;
         // theme defaults to 'dark' for saves made before the theme option existed
         theme = data.theme || 'dark';
+        // If the browser's notification permission was revoked since we last saved,
+        // silently fall back to off rather than promising reminders that won't fire.
+        notifLead = (data.notifLead && ('Notification' in window) && Notification.permission === 'granted')
+          ? data.notifLead : 0;
         if (data.wakeTime) document.getElementById('wakeTime').value = data.wakeTime;
         if (data.bedTime) document.getElementById('bedTime').value = data.bedTime;
       }
     } catch (e) { /* no saved data yet, or storage not available */ }
     document.getElementById('minuteStepSetting').value = String(minuteStep);
     document.getElementById('themeSetting').value = theme;
+    document.getElementById('notifSetting').value = String(notifLead);
+    updateNotifNote();
     applyTheme();
     buildAllTimePickers();
     renderList();
@@ -1500,6 +1517,69 @@
 
   // Re-check every 5 minutes so Auto mode actually switches while the app stays open
   setInterval(() => { if (theme === 'auto') applyTheme(); }, 5 * 60 * 1000);
+
+  // ---- Reminder notifications — only fire while this tab is open somewhere (no backend
+  // to wake the browser when it's fully closed). One reminder per task/event instance,
+  // `notifLead` minutes before its scheduled start.
+  function updateNotifNote(customMsg) {
+    const note = document.getElementById('notifNote');
+    if (!note) return;
+    if (customMsg) { note.textContent = customMsg; note.classList.add('warn'); return; }
+    note.classList.remove('warn');
+    note.textContent = notifLead > 0
+      ? `You'll get a reminder ${notifLead} min before each task/event starts, while this tab is open.`
+      : 'Reminders are off.';
+  }
+
+  document.getElementById('notifSetting').addEventListener('change', async (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (val === 0) {
+      notifLead = 0;
+      updateNotifNote();
+      saveData();
+      return;
+    }
+    if (!('Notification' in window)) {
+      e.target.value = '0';
+      updateNotifNote("This browser doesn't support notifications.");
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      e.target.value = '0';
+      notifLead = 0;
+      updateNotifNote('Notifications are blocked — enable them for this site in your browser settings to use reminders.');
+      saveData();
+      return;
+    }
+    notifLead = val;
+    updateNotifNote();
+    saveData();
+  });
+
+  const notifiedKeys = new Set(); // session-only — resets on reload, which is fine for a same-day reminder
+
+  function checkNotifications() {
+    if (notifLead <= 0 || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const { blocks, today } = computeTodayBlocks();
+    const dateKey = today.dateKey;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    blocks.forEach(b => {
+      if (b.type === 'task' && isInstanceComplete(b, dateKey, b.sessionIndex)) return;
+      const minsUntil = b.start - nowMins;
+      if (minsUntil < 0 || minsUntil > notifLead) return;
+      const key = manualSlotKey(b.id, dateKey, b.sessionIndex);
+      if (notifiedKeys.has(key)) return;
+      notifiedKeys.add(key);
+      const body = minsUntil === 0 ? `Starting now, ${formatMinutes(b.start)}` : `Starts in ${minsUntil} min, at ${formatMinutes(b.start)}`;
+      const n = new Notification(b.name, { body, tag: key });
+      n.onclick = () => { window.focus(); n.close(); };
+    });
+  }
+
+  setInterval(checkNotifications, 30000);
 
   // ---- Fast entry: Enter submits, focus returns to the name field ----
   document.getElementById('tkName').addEventListener('keydown', (e) => {
