@@ -587,22 +587,6 @@
     margin: 20px 0 10px;
   }
 
-  .task-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--teal);
-    border-radius: 9px;
-    padding: 12px;
-    margin-bottom: 8px;
-    animation: cardIn 250ms ease both;
-  }
-  .task-card.fixed { border-left-color: var(--gold); }
-  .task-card.done { opacity: 0.55; }
-  .task-card.priority-high:not(.fixed) { border-left-color: var(--red); }
-
   .check-circle {
     flex-shrink: 0;
     width: 24px;
@@ -629,12 +613,7 @@
   }
   .check-circle.static { cursor: default; opacity: 0.4; border-style: dashed; }
 
-  .task-card .tc-body { flex: 1; min-width: 0; }
-  .task-card .tc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .task-card .tc-name { font-weight: 600; font-size: 14.5px; }
-  .task-card.done .tc-name { text-decoration: line-through; color: var(--chalk-dim); }
-  .task-card .tc-meta { font-size: 12px; color: var(--chalk-dim); margin-top: 2px; }
-  .task-card .tc-actions { margin-top: 8px; }
+  .tc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
   .priority-tag {
     font-size: 10px;
@@ -814,6 +793,37 @@
     letter-spacing: 0.3px; cursor: pointer; font-family: inherit;
   }
   .whatnow-btn:active { transform: scale(0.98); }
+
+  .fab-container { position: fixed; top: 0; bottom: 0; left: 0; right: 0; max-width: 460px; margin: 0 auto; pointer-events: none; z-index: 95; }
+  .fab-add {
+    position: absolute; right: 18px; bottom: 22px; width: 56px; height: 56px; border-radius: 50%;
+    border: none; background: var(--gold); color: #1a1508; font-size: 28px; font-weight: 700;
+    line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35); pointer-events: auto; font-family: inherit;
+  }
+  .fab-add:active { transform: scale(0.95); }
+
+  .qa-input {
+    width: 100%; background: var(--board-light); border: 1px solid var(--line); color: var(--chalk);
+    padding: 12px 13px; border-radius: 8px; font-size: 16px; font-family: inherit;
+  }
+
+  .tl-dot.free { background: var(--chalk-dim); opacity: 0.5; }
+  .tl-block.free-block { background: transparent; border: 1px dashed var(--line); padding: 8px 12px; }
+  .tl-block.free-block .meta { color: var(--chalk-dim); margin-top: 0; }
+
+  .reschedule-btn {
+    background: none; border: 1px solid var(--line); color: var(--chalk-dim); border-radius: 7px;
+    padding: 7px 13px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+  .tc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .missed-suggestion {
+    margin-top: 8px; padding: 9px 11px; border-radius: 7px; background: rgba(226,96,79,0.1);
+    border: 1px solid rgba(226,96,79,0.35); font-size: 12.5px; color: var(--chalk);
+  }
+  .missed-suggestion-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .focus-btn.small { padding: 7px 13px; font-size: 12.5px; }
 
   :root[data-theme="light"] {
     --board: #f4f1e6;
@@ -1062,7 +1072,7 @@
     <div class="empty">Nothing added yet — start with classes and practices, then add tasks with a due day.</div>
   </div>
 
-  <button class="build-btn" onclick="buildWeek()">Build my week</button>
+  <button class="build-btn" onclick="buildWeek()">View full week</button>
 
   <div id="timelineWrap"></div>
 
@@ -1081,12 +1091,67 @@
     </div>
   </div>
 
+  <div class="focus-overlay hidden" id="rescheduleOverlay">
+    <div class="focus-card" style="text-align:left;">
+      <div class="focus-label">RESCHEDULE</div>
+      <div class="focus-name" id="rescheduleName" style="margin-bottom:14px;"></div>
+      <div id="rescheduleBody"></div>
+      <button class="focus-cancel" onclick="closeReschedule()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="focus-overlay hidden" id="quickAddOverlay">
+    <div class="focus-card" style="text-align:left;">
+      <div class="focus-label">ADD A TASK</div>
+      <input type="text" id="qaName" class="qa-input" placeholder="What needs doing?">
+      <div class="field" style="margin-top:14px;">
+        <label>Time needed</label>
+        <div class="chip-row" id="qaDurationChips">
+          <button type="button" class="chip" data-val="15">15m</button>
+          <button type="button" class="chip" data-val="20">20m</button>
+          <button type="button" class="chip active" data-val="30">30m</button>
+          <button type="button" class="chip" data-val="45">45m</button>
+          <button type="button" class="chip" data-val="60">1h</button>
+          <button type="button" class="chip" data-val="90">1.5h</button>
+          <button type="button" class="chip" data-val="120">2h</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Due</label>
+        <div class="chip-row" id="qaDueChips">
+          <button type="button" class="chip active" data-val="0">Today</button>
+          <button type="button" class="chip" data-val="1">Tomorrow</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Priority</label>
+        <div class="chip-row" id="qaPriorityChips">
+          <button type="button" class="chip" data-priority="low">Low</button>
+          <button type="button" class="chip active" data-priority="normal">Normal</button>
+          <button type="button" class="chip priority-high" data-priority="high">High</button>
+        </div>
+      </div>
+      <button class="add-btn task" style="margin-top:6px;" onclick="quickAddSave()">Add task</button>
+      <button class="focus-cancel" onclick="openFullTaskForm()">More options (notes, category, recurring...)</button>
+      <button class="focus-cancel" onclick="closeQuickAdd()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="fab-container"><button class="fab-add" id="fabAdd" onclick="openQuickAdd()" aria-label="Add a task">+</button></div>
+
 </div>
 
 <script>
   let events = [];   // {id, name, offset, start, end}
   let tasks = [];    // {id, name, duration, dueOffset, recurring, recurDays, priority, completed, completedSessions}
   let completions = {}; // per-day check-offs for recurring tasks, keyed "taskId:dateKey"
+  // Snapshot of {name,start,end,priority,category,duration} for a simple task or split
+  // session the instant it's completed, keyed "taskId:dateKey:sessionIndex". The scheduler
+  // (expandTask) drops completed work to free its time back up for other tasks, which means
+  // it vanishes from the live schedule — this log is what lets "Completed today" still show it.
+  let completedLog = {};
+  // Manual per-day time overrides from the Reschedule feature, keyed the same way, value {start}.
+  let manualSlots = {};
   let idCounter = 1;
   let editingEventId = null;
   let editingTaskId = null;
@@ -1146,12 +1211,23 @@
   function saveData() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        events, tasks, idCounter, minuteStep, theme, completions,
+        events, tasks, idCounter, minuteStep, theme, completions, completedLog, manualSlots,
         wakeTime: document.getElementById('wakeTime').value,
         bedTime: document.getElementById('bedTime').value
       }));
     } catch (e) { /* storage not available (e.g. private browsing) — fail silently */ }
     renderTodayDashboard();
+  }
+
+  // completedLog/manualSlots/completions are all keyed with a dateKey baked into the key
+  // string ("taskId:dateKey" or "taskId:dateKey:sessionIndex"); anything whose dateKey has
+  // rolled off the visible week is dead weight, so drop it rather than growing forever.
+  function pruneDateKeyedStore(store) {
+    const validKeys = new Set(WEEK_DAYS.map(d => d.dateKey));
+    Object.keys(store).forEach(k => {
+      const parts = k.split(':');
+      if (!validKeys.has(parts[1])) delete store[k];
+    });
   }
 
   function loadData() {
@@ -1162,6 +1238,11 @@
         events = data.events || [];
         tasks = data.tasks || [];
         completions = data.completions || {};
+        completedLog = data.completedLog || {};
+        manualSlots = data.manualSlots || {};
+        pruneDateKeyedStore(completions);
+        pruneDateKeyedStore(completedLog);
+        pruneDateKeyedStore(manualSlots);
         // migrate: older saves predate recurring tasks, priority, and completion
         tasks.forEach(t => {
           if (t.recurring === undefined) t.recurring = false;
@@ -1756,12 +1837,14 @@
       return;
     }
     let html = '';
+    if (events.length > 0 && tasks.length > 0) html += `<div class="section-subtitle">Events</div>`;
     [...events].sort((a, b) => a.offset - b.offset || a.start - b.start).forEach(ev => {
       html += `<div class="item" onclick="editEvent(${ev.id})" title="Tap to edit">
         <div class="info"><div class="t">${escapeHtml(ev.name)}</div><div class="d">${dayLabelFor(ev.offset)} &middot; ${formatMinutes(ev.start)} – ${formatMinutes(ev.end)}</div></div>
         <button class="remove" onclick="event.stopPropagation(); removeItem(${ev.id}, 'event')">&times;</button>
       </div>`;
     });
+    if (events.length > 0 && tasks.length > 0) html += `<div class="section-subtitle">Tasks</div>`;
     [...tasks].sort((a, b) => (a.recurring ? -1 : 0) - (b.recurring ? -1 : 0) || (a.dueOffset ?? 99) - (b.dueOffset ?? 99)).forEach(tk => {
       const remaining = taskTimeRemaining(tk);
       const splitNote = tk.split ? ` &middot; ${remaining}m left of ${tk.duration}m (${tk.sessionLen}-min sessions)` : '';
@@ -1802,7 +1885,7 @@
   function buildWeek() {
     const wrap = document.getElementById('timelineWrap');
     if (events.length === 0 && tasks.length === 0) {
-      wrap.innerHTML = '<div class="empty">Add a few classes/events and tasks first, then build your week.</div>';
+      wrap.innerHTML = '<div class="empty">Add a few classes/events and tasks first, then view your week.</div>';
       lastScheduleData = null;
       return;
     }
@@ -1842,6 +1925,22 @@
     return units;
   }
 
+  function manualSlotKey(taskId, dateKey, sessionIndex) {
+    return taskId + ':' + dateKey + ':' + (sessionIndex ?? 'null');
+  }
+
+  // Removes [start,end) from a list of gaps, splitting/shrinking entries as needed —
+  // used to carve out time for a manually-rescheduled task the same way a fixed event would.
+  function subtractRange(gaps, start, end) {
+    const result = [];
+    gaps.forEach(g => {
+      if (end <= g.start || start >= g.end) { result.push(g); return; }
+      if (start > g.start) result.push({ start: g.start, end: Math.min(start, g.end) });
+      if (end < g.end) result.push({ start: Math.max(end, g.start), end: g.end });
+    });
+    return result;
+  }
+
   // Recurring units are pinned to their one matching day; everything else tries its
   // preferred/target day first, then falls back through earlier days up to the due day.
   function offsetOrder(unit) {
@@ -1878,6 +1977,21 @@
     });
 
     let units = tasks.flatMap(expandTask);
+
+    // Pull out anything the user has manually rescheduled to a specific time today (via the
+    // Reschedule feature) before the automatic placer runs, and reserve that time in today's
+    // gaps exactly like a fixed event would — the pinned unit is placed directly, skipping
+    // the normal bin-packing pass entirely so it can't be double-booked or moved again.
+    const todayKey = WEEK_DAYS[0].dateKey;
+    const pinnedUnits = [];
+    units = units.filter(u => {
+      const pin = manualSlots[manualSlotKey(u.id, todayKey, u.sessionIndex)];
+      if (!pin) return true;
+      pinnedUnits.push({ ...u, name: u.unitName, start: pin.start, end: pin.start + u.unitDuration, matchedPref: true });
+      return false;
+    });
+    pinnedUnits.forEach(pu => { dayGaps[0] = subtractRange(dayGaps[0], pu.start, pu.end); });
+
     // Deadline first (never let priority bump something due sooner) — within the same due
     // day, higher priority claims slots first; then earlier target day; longer units as a tiebreak.
     units.sort((a, b) =>
@@ -1914,6 +2028,8 @@
     const placedByDay = {};
     WEEK_DAYS.forEach(d => placedByDay[d.offset] = []);
     let unplacedTasks = [];
+
+    pinnedUnits.forEach(pu => placedByDay[0].push(pu));
 
     units.forEach(unit => {
       const band = PREF_BAND[unit.pref];
@@ -1958,14 +2074,14 @@
       if (free < 60) { overloadedCount++; overloadedDayOffsets.add(d.offset); }
     });
 
-    return { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets };
+    return { wake, bed, dayGaps, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets };
   }
 
   function renderSchedule() {
     const wrap = document.getElementById('timelineWrap');
     const data = lastScheduleData;
     if (!data) return;
-    const { wake, bed, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets } = data;
+    const { wake, bed, dayGaps, dayConflicts, placedByDay, unplacedTasks, totalFree, busiestDay, overloadedCount, overloadedDayOffsets } = data;
 
     let html = `<div class="summary-card">
       <div class="s-title">This week at a glance</div>
@@ -1988,7 +2104,8 @@
       if (dayEvents.length === 0 && dayTasks.length === 0) return;
       anythingShown = true;
 
-      const blocks = [...dayEvents, ...dayTasks].sort((a, b) => a.start - b.start);
+      const freeEntries = (dayGaps[d.offset] || []).filter(g => g.end - g.start >= 10).map(g => ({ type: 'free', start: g.start, end: g.end }));
+      const blocks = [...dayEvents, ...dayTasks, ...freeEntries].sort((a, b) => a.start - b.start);
       const isToday = d.offset === 0;
       let markerPlaced = !isToday;
 
@@ -2007,6 +2124,7 @@
           html += `<div class="now-line"><div class="bar"></div><div class="lbl">NOW &middot; ${formatMinutes(nowMins)}</div><div class="bar"></div></div>`;
           markerPlaced = true;
         }
+        if (b.type === 'free') { html += renderFreeBlock(b); return; }
         const taskMeta = b.recurring ? 'recurring' : ('due ' + dayLabelFor(b.dueOffset));
         const done = b.type === 'task' && isInstanceComplete(b, isToday ? todayDateKey : (d.dateKey), b.sessionIndex);
         const missed = isToday && b.end <= nowMins && b.type === 'task' && !done;
@@ -2064,6 +2182,67 @@
     setTimeout(() => document.getElementById('tkName').focus(), 250);
   }
 
+  // ==================== QUICK ADD ====================
+  // The fast path: name + duration + Save. Due/priority default sensibly (today, normal)
+  // so the common case never asks for more than the app already assumes. Power-user fields
+  // (notes, category, subtasks, recurring, split) stay on the full form via "More options".
+  function wireSimpleChipGroup(containerId) {
+    document.querySelectorAll('#' + containerId + ' .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        document.querySelectorAll('#' + containerId + ' .chip').forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+      });
+    });
+  }
+  wireSimpleChipGroup('qaDurationChips');
+  wireSimpleChipGroup('qaDueChips');
+  wireSimpleChipGroup('qaPriorityChips');
+
+  function openQuickAdd() {
+    document.getElementById('qaName').value = '';
+    document.querySelectorAll('#qaDurationChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === '30'));
+    document.querySelectorAll('#qaDueChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === '0'));
+    document.querySelectorAll('#qaPriorityChips .chip').forEach(c => c.classList.toggle('active', c.dataset.priority === 'normal'));
+    const el = document.getElementById('quickAddOverlay');
+    el.classList.remove('hidden');
+    void el.offsetHeight;
+    el.classList.add('open');
+    setTimeout(() => document.getElementById('qaName').focus(), 50);
+  }
+
+  function closeQuickAdd() {
+    const el = document.getElementById('quickAddOverlay');
+    el.classList.remove('open');
+    setTimeout(() => el.classList.add('hidden'), 200);
+  }
+
+  function quickAddSave() {
+    const name = document.getElementById('qaName').value.trim();
+    if (!name) { document.getElementById('qaName').focus(); return; }
+    const duration = parseInt(document.querySelector('#qaDurationChips .chip.active')?.dataset.val || '30', 10);
+    const dueOffset = parseInt(document.querySelector('#qaDueChips .chip.active')?.dataset.val || '0', 10);
+    const priority = document.querySelector('#qaPriorityChips .chip.active')?.dataset.priority || 'normal';
+    tasks.push({
+      id: idCounter++, name, duration, dueOffset, pref: 'any', priority,
+      category: '', notes: '', subtasks: [], split: false, sessionLen: null,
+      recurring: false, recurDays: null, completed: false, completedSessions: []
+    });
+    renderList();
+    saveData();
+    closeQuickAdd();
+  }
+
+  function openFullTaskForm() {
+    const name = document.getElementById('qaName').value.trim();
+    closeQuickAdd();
+    goAddTask();
+    if (name) setTimeout(() => { document.getElementById('tkName').value = name; }, 260);
+  }
+
+  document.getElementById('qaName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); quickAddSave(); }
+  });
+
   // ==================== COMPLETION ====================
   // Simple tasks: a plain `completed` flag (done forever, drops out of scheduling).
   // Split tasks: `completedSessions` tracks which sessions are done; all-done implies `completed`.
@@ -2076,9 +2255,35 @@
     return !!task.completed;
   }
 
+  // Finds where a task/session is CURRENTLY sitting in the live schedule. Only meaningful
+  // while it's still incomplete — expandTask drops finished work, so this must be called
+  // before setInstanceComplete mutates state, not after.
+  function findCurrentBlockFor(taskId, sessionIndex) {
+    const schedule = computeSchedule();
+    return schedule.placedByDay[0].find(b => b.id === taskId && (b.sessionIndex ?? null) === (sessionIndex ?? null)) || null;
+  }
+
   function setInstanceComplete(taskId, dateKey, sessionIndex, isComplete) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    const logKey = manualSlotKey(taskId, dateKey, sessionIndex);
+
+    // Recurring instances never disappear from the live schedule when checked off (their
+    // completion lives in `completions`, not on the task itself), so they need no snapshot.
+    if (!task.recurring) {
+      if (isComplete) {
+        const block = findCurrentBlockFor(taskId, sessionIndex);
+        if (block) {
+          completedLog[logKey] = {
+            name: block.unitName, start: block.start, end: block.end,
+            priority: task.priority, category: task.category, notes: task.notes
+          };
+        }
+      } else {
+        delete completedLog[logKey];
+      }
+    }
+
     if (task.recurring) {
       const key = taskId + ':' + dateKey;
       if (isComplete) completions[key] = true; else delete completions[key];
@@ -2092,6 +2297,8 @@
     } else {
       task.completed = isComplete;
     }
+    // A completed instance no longer needs its manual time pin — it's done, not scheduled.
+    if (isComplete) delete manualSlots[logKey];
     saveData(); // also refreshes the Today dashboard
     renderList();
     if (lastScheduleData) { lastScheduleData = computeSchedule(); renderSchedule(); }
@@ -2118,8 +2325,13 @@
 
   function computeTodayProgress(blocks, dateKey) {
     const taskBlocks = blocks.filter(b => b.type === 'task');
-    const total = taskBlocks.length;
-    const done = taskBlocks.filter(b => isInstanceComplete(b, dateKey, b.sessionIndex)).length;
+    const liveKeys = new Set(taskBlocks.map(b => manualSlotKey(b.id, dateKey, b.sessionIndex)));
+    // Completed simple/split work drops out of the live schedule entirely (its time gets
+    // freed up), so the total has to add back anything in the log that isn't live anymore.
+    const loggedOnly = Object.keys(completedLog).filter(k => k.split(':')[1] === dateKey && !liveKeys.has(k));
+    const total = taskBlocks.length + loggedOnly.length;
+    const doneLive = taskBlocks.filter(b => isInstanceComplete(b, dateKey, b.sessionIndex)).length;
+    const done = doneLive + loggedOnly.length;
     return { total, done };
   }
 
@@ -2128,6 +2340,72 @@
     if (mins < 60) return `${mins}m`;
     const h = Math.floor(mins / 60), m = mins % 60;
     return m ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  // Free windows (from a gap list) at least `duration` long and starting no earlier than
+  // `afterMins`, soonest first — the shared basis for both the missed-task nudge and the
+  // Reschedule picker.
+  function findBestGap(gaps, duration, afterMins, limit) {
+    const candidates = [];
+    (gaps || []).forEach(g => {
+      const s = Math.max(g.start, afterMins);
+      if (g.end - s >= duration) candidates.push({ start: s, end: g.end });
+    });
+    candidates.sort((a, b) => a.start - b.start);
+    return limit ? candidates.slice(0, limit) : candidates;
+  }
+
+  function dismissMissed(key) {
+    dismissedMissed.add(key);
+    renderTodayDashboard();
+  }
+
+  // ---- Reschedule — moves a today-only task instance to a specific free slot by pinning
+  // it in `manualSlots`; computeSchedule reserves that time like a fixed event and places
+  // the unit there directly. Never happens automatically — the user always picks the time.
+  function applyReschedule(taskId, dateKey, sessionIndex, start) {
+    manualSlots[manualSlotKey(taskId, dateKey, sessionIndex)] = { start };
+    dismissedMissed.delete(manualSlotKey(taskId, dateKey, sessionIndex));
+    closeReschedule();
+    saveData();
+  }
+
+  function clearReschedule(taskId, dateKey, sessionIndex) {
+    delete manualSlots[manualSlotKey(taskId, dateKey, sessionIndex)];
+    closeReschedule();
+    saveData();
+  }
+
+  function openRescheduleFor(taskId, dateKey, sessionIndex, duration) {
+    const schedule = computeSchedule();
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const options = findBestGap(schedule.dayGaps[0], duration, nowMins, 4);
+    const hasPin = !!manualSlots[manualSlotKey(taskId, dateKey, sessionIndex)];
+    const liveBlock = schedule.placedByDay[0].find(b => b.id === taskId && (b.sessionIndex ?? null) === (sessionIndex ?? null));
+    const task = tasks.find(t => t.id === taskId);
+    // textContent, not innerHTML — safe regardless of what characters are in the name.
+    document.getElementById('rescheduleName').textContent = liveBlock ? liveBlock.name : (task ? task.name : 'Task');
+    const body = document.getElementById('rescheduleBody');
+    if (options.length === 0) {
+      body.innerHTML = `<div class="empty">No free opening today fits ${duration} min. Try changing the due day or duration.</div>`;
+    } else {
+      body.innerHTML = `<div class="chip-row">${options.map(o =>
+        `<button type="button" class="chip" onclick="applyReschedule(${taskId}, '${dateKey}', ${sessionIndex ?? 'null'}, ${o.start})">${formatMinutes(o.start)}</button>`
+      ).join('')}</div>`;
+    }
+    body.innerHTML += hasPin
+      ? `<button class="focus-cancel" onclick="clearReschedule(${taskId}, '${dateKey}', ${sessionIndex ?? 'null'})">Reset to automatic time</button>` : '';
+    const el = document.getElementById('rescheduleOverlay');
+    el.classList.remove('hidden');
+    void el.offsetHeight;
+    el.classList.add('open');
+  }
+
+  function closeReschedule() {
+    const el = document.getElementById('rescheduleOverlay');
+    el.classList.remove('open');
+    setTimeout(() => el.classList.add('hidden'), 200);
   }
 
   function computeNextUp(blocks, dateKey, nowMins) {
@@ -2161,8 +2439,21 @@
     </div>`;
   }
 
-  function renderDashboardBlock(b, dateKey, i, nowMins) {
+  function renderFreeBlock(b) {
+    return `<div class="tl-item">
+      <div class="tl-time">${formatMinutes(b.start)}</div>
+      <div class="tl-line"><div class="tl-dot free"></div></div>
+      <div class="tl-block free-block">
+        <div class="meta">Free &middot; ${minutesUntilLabel(b.end - b.start)}</div>
+      </div>
+    </div>`;
+  }
+
+  const dismissedMissed = new Set(); // session-only — reset on reload, never persisted
+
+  function renderDashboardBlock(b, dateKey, i, nowMins, todayGaps) {
     const isPastEnd = b.end <= nowMins;
+    if (b.type === 'free') return renderFreeBlock(b);
     if (b.type === 'fixed') {
       return `<div class="tl-item" style="animation-delay:${i * 30}ms">
         <div class="tl-time">${formatMinutes(b.start)}</div>
@@ -2179,6 +2470,23 @@
     const categoryTag = b.category ? ` <span class="category-tag">${escapeHtml(b.category)}</span>` : '';
     const missedPref = b.pref !== 'any' && !b.matchedPref ? ` &middot; no ${b.pref} slot open, moved here` : '';
     const remainingLabel = b.split ? ` &middot; ${taskTimeRemaining(tasks.find(t => t.id === b.id) || b)}m left of ${b.duration}m` : '';
+    const key = manualSlotKey(b.id, dateKey, b.sessionIndex);
+    const isPinned = !!manualSlots[key];
+
+    let missedSuggestion = '';
+    if (missed && !dismissedMissed.has(key) && todayGaps) {
+      const gap = findBestGap(todayGaps, b.end - b.start, nowMins)[0];
+      if (gap) {
+        missedSuggestion = `<div class="missed-suggestion">
+          <div>I found a ${minutesUntilLabel(b.end - b.start)} opening at ${formatMinutes(gap.start)}.</div>
+          <div class="missed-suggestion-actions">
+            <button class="start-btn small" onclick="applyReschedule(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${gap.start})">Move to ${formatMinutes(gap.start)}</button>
+            <button class="focus-btn ghost small" onclick="dismissMissed('${key}')">Keep original</button>
+          </div>
+        </div>`;
+      }
+    }
+
     return `<div class="tl-item" style="animation-delay:${i * 30}ms">
       <div class="tl-time">${formatMinutes(b.start)}</div>
       <div class="tl-line"><div class="tl-dot task"></div></div>
@@ -2186,11 +2494,15 @@
         <div style="display:flex; align-items:flex-start; gap:10px;">
           <div class="check-circle${done ? ' checked' : ''}" onclick="setInstanceComplete(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${!done})"></div>
           <div style="flex:1; min-width:0;">
-            <div class="tc-top"><div class="name">${escapeHtml(b.name)}</div>${priorityTag}${categoryTag}</div>
+            <div class="tc-top"><div class="name">${escapeHtml(b.name)}</div>${priorityTag}${categoryTag}${isPinned ? ' <span class="category-tag">moved</span>' : ''}</div>
             <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}${missedPref}${remainingLabel}${missed ? ' &middot; <span class="missed-tag">missed</span>' : ''}</div>
             ${b.notes ? `<div class="notes-preview">${escapeHtml(b.notes)}</div>` : ''}
             ${renderSubtaskChecklist(b, true)}
-            ${!done ? `<div class="tc-actions"><button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button></div>` : ''}
+            ${missedSuggestion}
+            ${!done ? `<div class="tc-actions">
+              <button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button>
+              <button class="reschedule-btn" onclick="openRescheduleFor(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">Reschedule</button>
+            </div>` : ''}
           </div>
         </div>
       </div>
@@ -2257,15 +2569,17 @@
       return;
     }
     const chosen = whatNowPool[whatNowIndex];
-    const fitNote = fits
-      ? `You have ${minutesUntilLabel(availableMinutes)} available${untilLabel ? ' ' + untilLabel : ''}.`
-      : `Nothing fits your ${minutesUntilLabel(availableMinutes)} window${untilLabel ? ' ' + untilLabel : ''} exactly, but this is the most urgent thing on your list.`;
+    const headline = fits
+      ? `You have ${minutesUntilLabel(availableMinutes)} free${untilLabel ? ' ' + untilLabel : ''}.`
+      : `Nothing fits your ${minutesUntilLabel(availableMinutes)} window${untilLabel ? ' ' + untilLabel : ''} exactly — here's the most urgent thing on your list.`;
+    const priorityTag = chosen.priority && chosen.priority !== 'normal' ? ` <span class="priority-tag ${chosen.priority}">${PRIORITY_LABEL[chosen.priority]}</span>` : '';
+    const dueText = chosen.recurring ? 'Recurring today' : (chosen.dueOffset === 0 ? 'Due today' : `Due ${dayLabelFor(chosen.dueOffset)}`);
     const again = whatNowPool.length > 1
       ? `<button class="focus-cancel" style="margin-top:10px;" onclick="nextWhatNowSuggestion()">Try another suggestion</button>` : '';
     wrap.innerHTML = `<div class="next-up-card now">
-      <div class="nu-label">SUGGESTED</div>
-      <div class="nu-name">${escapeHtml(chosen.unitName)}</div>
-      <div class="nu-meta">${fitNote}</div>
+      <div class="nu-label">${escapeHtml(headline)}</div>
+      <div class="nu-name">${escapeHtml(chosen.unitName)}${priorityTag}</div>
+      <div class="nu-meta">${chosen.unitDuration} min &middot; ${dueText}</div>
       <button class="start-btn" onclick="startFocus(${chosen.id}, '${todayKey}', ${chosen.sessionIndex ?? 'null'}, ${chosen.unitDuration})">&#9654; Start Task</button>
       ${again}
     </div>`;
@@ -2289,7 +2603,11 @@
     const dateKey = today.dateKey;
     const matches = blocks
       .filter(b => b.type === 'task' && (b.end - b.start) <= selectedMinutesFilter && !isInstanceComplete(b, dateKey, b.sessionIndex))
-      .sort((a, b) => (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1) || a.start - b.start)
+      .sort((a, b) =>
+        (a.dueOffset ?? 99) - (b.dueOffset ?? 99)
+        || (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1)
+        || a.start - b.start
+      )
       .slice(0, 3);
     if (matches.length === 0) {
       results.innerHTML = `<div class="empty">Nothing that short left on today's plan.</div>`;
@@ -2303,6 +2621,25 @@
         </div>
         <button class="start-btn small" onclick="startFocus(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, ${b.end - b.start})">&#9654; Start</button>
       </div>`).join('');
+  }
+
+  function renderCompletedBlock(b, dateKey) {
+    const priorityTag = b.priority && b.priority !== 'normal' ? ` <span class="priority-tag ${b.priority}">${PRIORITY_LABEL[b.priority]}</span>` : '';
+    const categoryTag = b.category ? ` <span class="category-tag">${escapeHtml(b.category)}</span>` : '';
+    return `<div class="tl-item">
+      <div class="tl-time">${formatMinutes(b.start)}</div>
+      <div class="tl-line"><div class="tl-dot task"></div></div>
+      <div class="tl-block task-block done">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <div class="check-circle checked" onclick="setInstanceComplete(${b.id}, '${dateKey}', ${b.sessionIndex ?? 'null'}, false)"></div>
+          <div style="flex:1; min-width:0;">
+            <div class="tc-top"><div class="name">${escapeHtml(b.name)}</div>${priorityTag}${categoryTag}</div>
+            <div class="meta">${formatMinutes(b.start)} – ${formatMinutes(b.end)}</div>
+            ${b.notes ? `<div class="notes-preview">${escapeHtml(b.notes)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
   }
 
   function renderTodayDashboard() {
@@ -2360,19 +2697,30 @@
     }
 
     const remainingBlocks = blocks.filter(b => b.type === 'fixed' || !isInstanceComplete(b, dateKey, b.sessionIndex));
-    const completedBlocks = blocks.filter(b => b.type === 'task' && isInstanceComplete(b, dateKey, b.sessionIndex));
+    const freeEntries = (schedule.dayGaps[0] || []).filter(g => g.end - g.start >= 10).map(g => ({ type: 'free', start: g.start, end: g.end }));
+    const timeline = [...remainingBlocks, ...freeEntries].sort((a, b) => a.start - b.start);
+
+    // A completed simple/split task disappears from the live schedule (its time frees up
+    // for other work), so "Completed today" is reconstructed from the completion log, not
+    // from `blocks` — recurring instances are the one case still live, so dedupe by key.
+    const liveCompleted = blocks.filter(b => b.type === 'task' && isInstanceComplete(b, dateKey, b.sessionIndex));
+    const liveCompletedKeys = new Set(liveCompleted.map(b => manualSlotKey(b.id, dateKey, b.sessionIndex)));
+    const loggedCompleted = Object.keys(completedLog)
+      .filter(k => k.split(':')[1] === dateKey && !liveCompletedKeys.has(k))
+      .map(k => ({ id: parseInt(k.split(':')[0], 10), sessionIndex: k.split(':')[2] === 'null' ? null : parseInt(k.split(':')[2], 10), ...completedLog[k] }));
+    const completedBlocks = [...liveCompleted, ...loggedCompleted].sort((a, b) => a.start - b.start);
 
     html += `<div class="day-plan-title">Today's plan</div>`;
     if (blocks.length === 0) {
-      html += `<div class="empty">Nothing scheduled for today — add a task or event, then check Plan &rarr; Build my week.</div>`;
+      html += `<div class="empty">Nothing scheduled for today — add a task or event, then check Plan &rarr; View full week.</div>`;
     } else if (remainingBlocks.length === 0) {
       html += `<div class="empty">Nothing left on today's plan. Nice work!</div>`;
     } else {
       let markerPlaced = false;
       const nowMarker = `<div class="now-line"><div class="bar"></div><div class="lbl">NOW &middot; ${formatMinutes(nowMins)}</div><div class="bar"></div></div>`;
-      remainingBlocks.forEach((b, i) => {
+      timeline.forEach((b, i) => {
         if (!markerPlaced && b.start > nowMins) { html += nowMarker; markerPlaced = true; }
-        html += renderDashboardBlock(b, dateKey, i, nowMins);
+        html += renderDashboardBlock(b, dateKey, i, nowMins, schedule.dayGaps[0]);
       });
       if (!markerPlaced) html += nowMarker;
     }
@@ -2383,7 +2731,7 @@
 
     if (completedBlocks.length > 0) {
       html += `<div class="section-subtitle">Completed today (${completedBlocks.length})</div>`;
-      completedBlocks.forEach((b, i) => { html += renderDashboardBlock(b, dateKey, i, nowMins); });
+      completedBlocks.forEach(b => { html += renderCompletedBlock(b, dateKey); });
     }
 
     container.innerHTML = html;
